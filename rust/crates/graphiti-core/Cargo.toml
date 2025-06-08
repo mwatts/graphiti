@@ -1,0 +1,35 @@
+[package]
+name = "graphiti-core"
+version = "0.12.0"
+edition = "2021"
+description = "A temporal graph building library for AI agents"
+license = "Apache-2.0"
+authors = [
+    "Paul Paliychuk <paul@getzep.com>",
+    "Preston Rasmussen <preston@getzep.com>", 
+    "Daniel Chalef <daniel@getzep.com>",
+]
+
+[dependencies]
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+async-trait = { workspace = true }
+reqwest = { workspace = true }
+neo4rs = { workspace = true }
+validator = { workspace = true }
+sled = { workspace = true }
+moka = { workspace = true }
+tokio-retry = { workspace = true }
+dotenvy = { workspace = true }
+futures = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockall = "0.12"

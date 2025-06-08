@@ -1,0 +1,52 @@
+[workspace]
+members = [
+    "crates/graphiti-core",
+]
+resolver = "2"
+
+[workspace.dependencies]
+# Core dependencies
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+uuid = { version = "1.8", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+async-trait = "0.1"
+reqwest = { version = "0.11", features = ["json"] }
+neo4rs = "0.7"
+validator = { version = "0.18", features = ["derive"] }
+
+# Server dependencies
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Configuration
+config = "0.14"
+dotenvy = "0.15"
+
+# Caching
+sled = "0.34"
+moka = { version = "0.12", features = ["future"] }
+
+# Retry mechanisms
+tokio-retry = "0.3"
+
+# Async utilities
+futures = "0.3"
+
+# Azure integration (for MCP server)
+azure-identity = "0.21"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+debug = true
