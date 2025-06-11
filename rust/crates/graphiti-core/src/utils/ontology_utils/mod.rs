@@ -14,14 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//! Utility modules for Graphiti
+//! Ontology utilities module
 
-pub mod datetime_utils;
-pub mod bulk_utils;
-pub mod maintenance;
-pub mod ontology_utils;
+pub mod entity_types_utils;
 
-pub use datetime_utils::*;
-pub use bulk_utils::*;
-pub use maintenance::*;
-pub use ontology_utils::*;
+pub use entity_types_utils::*;

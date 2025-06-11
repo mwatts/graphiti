@@ -58,7 +58,7 @@ mod tests {
         let now = utc_now();
         let formatted = format_for_db(now);
         let parsed = parse_from_db(&formatted).unwrap();
-        
+
         // Allow for small differences due to rounding
         assert!((now.timestamp() - parsed.timestamp()).abs() <= 1);
     }

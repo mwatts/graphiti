@@ -14,14 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//! Utility modules for Graphiti
+//! Maintenance operations module
 
-pub mod datetime_utils;
-pub mod bulk_utils;
-pub mod maintenance;
-pub mod ontology_utils;
+pub mod node_operations;
+pub mod edge_operations;
+pub mod temporal_operations;
+pub mod graph_data_operations;
+pub mod community_operations;
+pub mod utils;
 
-pub use datetime_utils::*;
-pub use bulk_utils::*;
-pub use maintenance::*;
-pub use ontology_utils::*;
+pub use node_operations::*;
+pub use edge_operations::*;
+pub use temporal_operations::*;
+pub use graph_data_operations::*;
+pub use community_operations::*;
+pub use utils::*;
