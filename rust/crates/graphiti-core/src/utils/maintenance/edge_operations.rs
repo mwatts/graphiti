@@ -63,9 +63,9 @@ pub async fn dedupe_edge_list(
 
 /// Build episodic edges from extracted nodes
 pub fn build_episodic_edges(
-    extracted_nodes: &[EntityNode],
-    episode: &EpisodicNode,
-    created_at: DateTime<Utc>,
+    _extracted_nodes: &[EntityNode],
+    _episode: &EpisodicNode,
+    _created_at: DateTime<Utc>,
 ) -> Vec<EpisodicEdge> {
     // Stub implementation - would create episodic edges linking nodes to episodes
 

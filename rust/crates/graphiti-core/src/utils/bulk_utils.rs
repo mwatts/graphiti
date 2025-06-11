@@ -30,7 +30,6 @@ limitations under the License.
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use neo4rs::{Graph, Txn};
-use uuid::Uuid;
 use crate::{
     types::GraphitiClients,
     nodes::{EntityNode, EpisodicNode, EpisodeType},
@@ -38,7 +37,6 @@ use crate::{
     embedder::EmbedderClient,
     llm_client::LlmClient,
     search::{SearchFilters, get_relevant_nodes, get_relevant_edges},
-    utils::datetime_utils::utc_now,
     helpers::semaphore_gather,
     errors::GraphitiError,
 };
@@ -58,9 +56,9 @@ pub struct RawEpisode {
 
 /// Retrieve previous episodes for multiple episodes in bulk
 pub async fn retrieve_previous_episodes_bulk(
-    graph: &Graph,
+    _graph: &Graph,
     episodes: &[EpisodicNode],
-    episode_window_len: usize,
+    _episode_window_len: usize,
 ) -> Result<Vec<(EpisodicNode, Vec<EpisodicNode>)>, GraphitiError> {
     let futures: Vec<_> = episodes
         .iter()
@@ -406,7 +404,7 @@ pub fn resolve_edge_pointers<E: AsRef<EntityEdge> + AsMut<EntityEdge>>(
 /// Extract edge dates in bulk
 pub async fn extract_edge_dates_bulk(
     _llm_client: &dyn LlmClient,
-    mut extracted_edges: Vec<EntityEdge>,
+    extracted_edges: Vec<EntityEdge>,
     episode_pairs: Vec<(EpisodicNode, Vec<EpisodicNode>)>,
 ) -> Result<Vec<EntityEdge>, GraphitiError> {
     // Filter edges that have episodes
@@ -465,26 +463,13 @@ fn chunk_edges_by_nodes(edges: Vec<EntityEdge>) -> Vec<Vec<EntityEdge>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use uuid::Uuid;
 
     #[test]
     fn test_node_name_match() {
         let nodes = vec![
-            EntityNode {
-                uuid: Uuid::new_v4(),
-                name: "Alice".to_string(),
-                ..Default::default()
-            },
-            EntityNode {
-                uuid: Uuid::new_v4(),
-                name: "Bob".to_string(),
-                ..Default::default()
-            },
-            EntityNode {
-                uuid: Uuid::new_v4(),
-                name: "Alice".to_string(), // Duplicate
-                ..Default::default()
-            },
+            EntityNode::new("Alice".to_string(), "test-group".to_string(), "Summary for Alice".to_string()),
+            EntityNode::new("Bob".to_string(), "test-group".to_string(), "Summary for Bob".to_string()),
+            EntityNode::new("Alice".to_string(), "test-group".to_string(), "Summary for Alice duplicate".to_string()), // Duplicate
         ];
 
         let (unique_nodes, uuid_map) = node_name_match(nodes);
@@ -510,16 +495,22 @@ mod tests {
     #[test]
     fn test_chunk_edges_by_nodes() {
         let edges = vec![
-            EntityEdge {
-                source_node_uuid: Uuid::new_v4(),
-                target_node_uuid: Uuid::new_v4(),
-                ..Default::default()
-            },
-            EntityEdge {
-                source_node_uuid: Uuid::new_v4(),
-                target_node_uuid: Uuid::new_v4(),
-                ..Default::default()
-            },
+            EntityEdge::new(
+                "test-group".to_string(),
+                "source1".to_string(),
+                "target1".to_string(),
+                "relationship1".to_string(),
+                "fact1".to_string(),
+                chrono::Utc::now(),
+            ),
+            EntityEdge::new(
+                "test-group".to_string(),
+                "source2".to_string(),
+                "target2".to_string(),
+                "relationship2".to_string(),
+                "fact2".to_string(),
+                chrono::Utc::now(),
+            ),
         ];
 
         let chunks = chunk_edges_by_nodes(edges);

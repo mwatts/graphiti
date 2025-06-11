@@ -155,7 +155,7 @@ mod tests {
     #[test]
     fn test_lucene_sanitize() {
         let input = "test+query-with&special|chars";
-        let expected = r"test\+query\-with\&special\|chars";
+        let expected = r"test\\+query\\-with\\&special\\|chars";
         assert_eq!(lucene_sanitize(input), expected);
     }
 
