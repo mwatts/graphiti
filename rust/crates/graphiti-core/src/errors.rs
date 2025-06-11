@@ -62,10 +62,10 @@ pub enum GraphitiError {
     #[error("Search reranker error: {text}")]
     SearchReranker { text: String },
 
-    #[error("{entity_type_attribute} cannot be used as an attribute for {entity_type} as it is a protected attribute name")]
+    #[error("{field_name} cannot be used as an attribute for {entity_type} as it is a protected attribute name")]
     EntityTypeValidation {
         entity_type: String,
-        entity_type_attribute: String,
+        field_name: String,
     },
 
     #[error("Configuration error: {message}")]

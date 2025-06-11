@@ -43,6 +43,7 @@ pub use search::GraphitiSearch;
 pub use utils::{
     lucene_sanitize, fulltext_query,
     get_episodes_by_mentions, get_mentioned_nodes, get_communities_by_nodes,
+    get_relevant_nodes, get_relevant_edges,
     edge_fulltext_search, edge_similarity_search, edge_bfs_search,
     RELEVANT_SCHEMA_LIMIT, DEFAULT_MIN_SCORE, DEFAULT_MMR_LAMBDA, MAX_SEARCH_DEPTH, MAX_QUERY_LENGTH,
 };

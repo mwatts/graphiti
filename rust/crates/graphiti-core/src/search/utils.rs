@@ -633,6 +633,28 @@ pub fn build_node_fulltext_query(
     (cypher, params)
 }
 
+/// Get relevant nodes for a given set of nodes using similarity search
+pub async fn get_relevant_nodes(
+    _graph: &neo4rs::Graph,
+    _nodes: &[EntityNode],
+    _filters: &SearchFilters,
+) -> Result<Vec<EntityNode>, GraphitiError> {
+    // Stub implementation - would search for similar nodes in the database
+    // based on name embeddings and apply filters
+    Ok(Vec::new())
+}
+
+/// Get relevant edges for a given set of edges using similarity search
+pub async fn get_relevant_edges(
+    _graph: &neo4rs::Graph,
+    _edges: &[EntityEdge],
+    _filters: &SearchFilters,
+) -> Result<Vec<EntityEdge>, GraphitiError> {
+    // Stub implementation - would search for similar edges in the database
+    // based on fact embeddings and apply filters
+    Ok(Vec::new())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

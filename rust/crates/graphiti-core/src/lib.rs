@@ -27,11 +27,14 @@ pub mod cross_encoder;
 pub mod edges;
 pub mod embedder;
 pub mod errors;
+pub mod graphiti;
+pub mod helpers;
 pub mod llm_client;
 pub mod nodes;
 pub mod prompts;
 pub mod search;
 pub mod types;
+pub mod utils;
 
 // Re-export commonly used types
 pub use errors::{GraphitiError, LlmError};
@@ -65,6 +68,15 @@ pub use bulk::BulkOperations;
 
 // Re-export prompts
 pub use prompts::{PromptLibrary, Message as PromptMessage, get_prompt_library};
+
+// Re-export helpers
+pub use helpers::{semaphore_gather, lucene_sanitize, normalize_l2};
+
+// Re-export utils
+pub use utils::{bulk_utils, datetime_utils, ValidationReport, GraphStats};
+
+// Re-export main Graphiti orchestrator
+pub use graphiti::{Graphiti, GraphitiConfig, AddEpisodeResults};
 
 #[cfg(test)]
 mod tests {

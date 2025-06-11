@@ -18,7 +18,7 @@ limitations under the License.
 
 use std::env;
 use chrono::{DateTime, Utc};
-use neo4rs::{BoltType, time as neo4j_time};
+use neo4rs::BoltType;
 use tokio::sync::Semaphore;
 use futures::future::join_all;
 
@@ -112,7 +112,7 @@ pub fn lucene_sanitize(query: &str) -> String {
 /// Normalize embedding vector using L2 norm
 pub fn normalize_l2(embedding: &[f32]) -> Vec<f32> {
     let norm: f32 = embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
-    
+
     if norm == 0.0 {
         embedding.to_vec()
     } else {
@@ -131,7 +131,7 @@ where
 {
     let limit = max_concurrent.unwrap_or_else(semaphore_limit);
     let semaphore = Semaphore::new(limit);
-    
+
     let tasks: Vec<_> = futures
         .into_iter()
         .map(|future| {
@@ -142,7 +142,7 @@ where
             }
         })
         .collect();
-    
+
     join_all(tasks).await
 }
 
@@ -162,7 +162,7 @@ mod tests {
         let embedding = vec![3.0, 4.0, 0.0];
         let normalized = normalize_l2(&embedding);
         let expected = vec![0.6, 0.8, 0.0];
-        
+
         for (a, b) in normalized.iter().zip(expected.iter()) {
             assert!((a - b).abs() < 1e-6);
         }
