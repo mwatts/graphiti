@@ -72,17 +72,17 @@ impl OpenAiEmbedder {
             .ok_or_else(|| GraphitiError::Config {
                 message: "OpenAI API key is required".to_string(),
             })?;
-            
+
         let base_url = config.base_url.clone()
             .unwrap_or_else(|| DEFAULT_BASE_URL.to_string());
-            
+
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(60))
             .build()
             .map_err(|e| GraphitiError::Config {
                 message: format!("Failed to create HTTP client: {}", e),
             })?;
-            
+
         Ok(Self {
             config,
             client,
@@ -90,15 +90,15 @@ impl OpenAiEmbedder {
             base_url,
         })
     }
-    
+
     async fn create_embeddings_request(&self, input: Vec<String>) -> GraphitiResult<Vec<Vec<f32>>> {
         let request = EmbeddingRequest {
             input,
             model: self.config.embedding_model.clone(),
         };
-        
+
         let url = format!("{}/embeddings", self.base_url);
-        
+
         let response = self.client
             .post(&url)
             .header("Authorization", format!("Bearer {}", self.api_key))
@@ -107,7 +107,7 @@ impl OpenAiEmbedder {
             .send()
             .await
             .map_err(GraphitiError::Http)?;
-            
+
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
@@ -115,10 +115,10 @@ impl OpenAiEmbedder {
                 message: format!("OpenAI API error {}: {}", status, error_text),
             });
         }
-        
+
         let embedding_response: EmbeddingResponse = response.json().await
             .map_err(GraphitiError::Http)?;
-            
+
         let embeddings = embedding_response.data
             .into_iter()
             .map(|data| {
@@ -126,7 +126,7 @@ impl OpenAiEmbedder {
                 data.embedding[..max_dim].to_vec()
             })
             .collect();
-            
+
         Ok(embeddings)
     }
 }
@@ -140,7 +140,7 @@ impl EmbedderClient for OpenAiEmbedder {
                 message: "No embeddings returned from OpenAI".to_string(),
             })
     }
-    
+
     async fn create_batch(&self, input_data_list: &[String]) -> GraphitiResult<Vec<Vec<f32>>> {
         self.create_embeddings_request(input_data_list.to_vec()).await
     }

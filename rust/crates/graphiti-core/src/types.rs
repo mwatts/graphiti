@@ -19,6 +19,7 @@ use neo4rs::Graph;
 use crate::llm_client::LlmClient;
 use crate::embedder::EmbedderClient;
 use crate::cross_encoder::CrossEncoderClient;
+use crate::cache::Cache;
 
 /// Core clients required for Graphiti operations
 #[derive(Clone)]
@@ -27,6 +28,7 @@ pub struct GraphitiClients {
     pub llm_client: Arc<dyn LlmClient + Send + Sync>,
     pub embedder: Arc<dyn EmbedderClient + Send + Sync>,
     pub cross_encoder: Arc<dyn CrossEncoderClient + Send + Sync>,
+    pub cache: Arc<dyn Cache + Send + Sync>,
 }
 
 impl GraphitiClients {
@@ -35,12 +37,14 @@ impl GraphitiClients {
         llm_client: Arc<dyn LlmClient + Send + Sync>,
         embedder: Arc<dyn EmbedderClient + Send + Sync>,
         cross_encoder: Arc<dyn CrossEncoderClient + Send + Sync>,
+        cache: Arc<dyn Cache + Send + Sync>,
     ) -> Self {
         Self {
             driver: Arc::new(driver),
             llm_client,
             embedder,
             cross_encoder,
+            cache,
         }
     }
 }

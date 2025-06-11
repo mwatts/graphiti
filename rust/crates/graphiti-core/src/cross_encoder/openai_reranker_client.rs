@@ -28,7 +28,7 @@ use crate::{
 
 const DEFAULT_MODEL: &str = "gpt-4.1-nano";
 
-/// OpenAI-based reranker that uses the OpenAI API to run a simple boolean classifier 
+/// OpenAI-based reranker that uses the OpenAI API to run a simple boolean classifier
 /// prompt concurrently for each passage. Log-probabilities are used to rank the passages.
 pub struct OpenAIRerankerClient {
     llm_client: Box<dyn LlmClient>,
@@ -38,7 +38,7 @@ impl OpenAIRerankerClient {
     pub fn new(config: Option<LlmConfig>) -> Result<Self, GraphitiError> {
         let config = config.unwrap_or_default();
         let llm_client = crate::llm_client::openai_client::OpenAiClient::new(config, false)?;
-        
+
         Ok(Self {
             llm_client: Box::new(llm_client),
         })
@@ -90,14 +90,14 @@ impl CrossEncoderClient for OpenAIRerankerClient {
         let mut tasks = Vec::new();
         for messages in message_sets {
             let client = &self.llm_client;
-            
+
             // Create request parameters for logit bias and logprobs
             let mut params = serde_json::Map::new();
             params.insert("model".to_string(), json!(DEFAULT_MODEL));
             params.insert("messages".to_string(), json!(messages));
             params.insert("temperature".to_string(), json!(0));
             params.insert("max_tokens".to_string(), json!(1));
-            
+
             // Logit bias for True/False tokens
             let mut logit_bias = HashMap::new();
             logit_bias.insert("6432".to_string(), 1); // "True" token
@@ -109,7 +109,7 @@ impl CrossEncoderClient for OpenAIRerankerClient {
             let task = async move {
                 client.chat_completion(&messages, Some(Value::Object(params.into()))).await
             };
-            
+
             tasks.push(task);
         }
 
@@ -120,14 +120,14 @@ impl CrossEncoderClient for OpenAIRerankerClient {
         let mut results = Vec::new();
         for (i, response) in responses.iter().enumerate() {
             let passage = &passages[i];
-            
+
             // Extract logprobs from response
             let score = extract_score_from_response(response)
                 .unwrap_or_else(|| {
                     warn!("Failed to extract score for passage {}, using default 0.0", i);
                     0.0
                 });
-            
+
             results.push((passage.clone(), score));
         }
 
@@ -146,27 +146,27 @@ fn extract_score_from_response(response: &Value) -> Option<f64> {
     let content = logprobs.get("content")?.as_array()?;
     let first_content = content.first()?;
     let top_logprobs = first_content.get("top_logprobs")?.as_array()?;
-    
+
     if top_logprobs.is_empty() {
         return None;
     }
-    
+
     let top_logprob = &top_logprobs[0];
     let logprob = top_logprob.get("logprob")?.as_f64()?;
     let token = top_logprob.get("token")?.as_str()?;
-    
+
     let norm_logprob = logprob.exp();
-    
+
     // If the token indicates relevance, use the probability directly
     // Otherwise, use 1 - probability
-    let score = if token.to_lowercase().contains("true") || 
+    let score = if token.to_lowercase().contains("true") ||
                   token.to_lowercase().contains("yes") ||
                   token.to_lowercase().contains("relevant") {
         norm_logprob
     } else {
         1.0 - norm_logprob
     };
-    
+
     Some(score)
 }
 
@@ -201,7 +201,7 @@ mod tests {
                 "logprobs": {
                     "content": [{
                         "top_logprobs": [{
-                            "token": "False", 
+                            "token": "False",
                             "logprob": -0.5
                         }]
                     }]

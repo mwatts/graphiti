@@ -21,12 +21,15 @@ limitations under the License.
 //! This crate provides the core functionality for building and managing
 //! temporal graphs with nodes and edges that can evolve over time.
 
+pub mod bulk;
+pub mod cache;
 pub mod cross_encoder;
 pub mod edges;
 pub mod embedder;
 pub mod errors;
 pub mod llm_client;
 pub mod nodes;
+pub mod search;
 pub mod types;
 
 // Re-export commonly used types
@@ -43,13 +46,21 @@ pub use nodes::Node;
 // Re-export concrete types
 pub use cross_encoder::OpenAIRerankerClient;
 pub use edges::{BaseEdge, CommunityEdge, EntityEdge, EpisodicEdge};
-pub use embedder::OpenAiEmbedder;
+pub use embedder::{OpenAiEmbedder, CachedEmbedderClient};
 pub use llm_client::{
     config::LlmConfig,
     models::{Message, TokenUsage},
     openai_client::OpenAiClient,
+    CachedLlmClient,
 };
 pub use nodes::{BaseNode, CommunityNode, EntityNode, EpisodicNode, EpisodeType};
+pub use search::{GraphitiSearch, SearchConfig, SearchFilters, SearchResults};
+
+// Re-export cache types
+pub use cache::{Cache, CacheConfig, CacheStats, generate_cache_key};
+
+// Re-export bulk operations
+pub use bulk::BulkOperations;
 
 #[cfg(test)]
 mod tests {

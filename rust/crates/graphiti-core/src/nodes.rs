@@ -27,7 +27,7 @@ use crate::errors::GraphitiError;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum EpisodeType {
-    /// Represents a standard message-type episode. The content should be 
+    /// Represents a standard message-type episode. The content should be
     /// formatted as "actor: content". For example, "user: Hello, how are you?".to_string()
     Message,
     /// Represents an episode containing a JSON string object with structured data.
@@ -55,25 +55,25 @@ impl EpisodeType {
 pub trait Node: Send + Sync {
     /// Get the UUID of the node
     fn uuid(&self) -> &str;
-    
+
     /// Get the name of the node
     fn name(&self) -> &str;
-    
+
     /// Get the group_id of the node
     fn group_id(&self) -> &str;
-    
+
     /// Get the labels of the node
     fn labels(&self) -> &[String];
-    
+
     /// Get the creation timestamp
     fn created_at(&self) -> DateTime<Utc>;
-    
+
     /// Save the node to the database
     async fn save(&self, graph: &Graph) -> Result<(), GraphitiError>;
-    
+
     /// Delete the node from the database
     async fn delete(&self, graph: &Graph) -> Result<(), GraphitiError>;
-    
+
     /// Get additional attributes as key-value pairs
     fn attributes(&self) -> HashMap<String, serde_json::Value>;
 }
@@ -98,17 +98,17 @@ impl BaseNode {
             created_at: Utc::now(),
         }
     }
-    
+
     pub fn with_uuid(mut self, uuid: String) -> Self {
         self.uuid = uuid;
         self
     }
-    
+
     pub fn with_labels(mut self, labels: Vec<String>) -> Self {
         self.labels = labels;
         self
     }
-    
+
     pub fn with_created_at(mut self, created_at: DateTime<Utc>) -> Self {
         self.created_at = created_at;
         self
@@ -177,23 +177,23 @@ impl Node for EpisodicNode {
     fn uuid(&self) -> &str {
         &self.base.uuid
     }
-    
+
     fn name(&self) -> &str {
         &self.base.name
     }
-    
+
     fn group_id(&self) -> &str {
         &self.base.group_id
     }
-    
+
     fn labels(&self) -> &[String] {
         &self.base.labels
     }
-    
+
     fn created_at(&self) -> DateTime<Utc> {
         self.base.created_at
     }
-    
+
     async fn save(&self, graph: &Graph) -> Result<(), GraphitiError> {
         let query = Query::new(
             "MERGE (n:Episodic {uuid: $uuid})
@@ -221,7 +221,7 @@ impl Node for EpisodicNode {
 
         Ok(())
     }
-    
+
     async fn delete(&self, graph: &Graph) -> Result<(), GraphitiError> {
         let query = Query::new(
             "MATCH (n:Episodic {uuid: $uuid})
@@ -233,7 +233,7 @@ impl Node for EpisodicNode {
 
         Ok(())
     }
-    
+
     fn attributes(&self) -> HashMap<String, serde_json::Value> {
         let mut attrs = HashMap::new();
         attrs.insert("source".to_string(), serde_json::to_value(&self.source).unwrap());
@@ -262,7 +262,7 @@ impl EntityNode {
             summary_embedding: None,
         }
     }
-    
+
     pub fn with_summary_embedding(mut self, embedding: Vec<f64>) -> Self {
         self.summary_embedding = Some(embedding);
         self
@@ -274,23 +274,23 @@ impl Node for EntityNode {
     fn uuid(&self) -> &str {
         &self.base.uuid
     }
-    
+
     fn name(&self) -> &str {
         &self.base.name
     }
-    
+
     fn group_id(&self) -> &str {
         &self.base.group_id
     }
-    
+
     fn labels(&self) -> &[String] {
         &self.base.labels
     }
-    
+
     fn created_at(&self) -> DateTime<Utc> {
         self.base.created_at
     }
-    
+
     async fn save(&self, graph: &Graph) -> Result<(), GraphitiError> {
         let query = Query::new(
             "MERGE (n:Entity {uuid: $uuid})
@@ -312,7 +312,7 @@ impl Node for EntityNode {
 
         Ok(())
     }
-    
+
     async fn delete(&self, graph: &Graph) -> Result<(), GraphitiError> {
         let query = Query::new(
             "MATCH (n:Entity {uuid: $uuid})
@@ -324,7 +324,7 @@ impl Node for EntityNode {
 
         Ok(())
     }
-    
+
     fn attributes(&self) -> HashMap<String, serde_json::Value> {
         let mut attrs = HashMap::new();
         attrs.insert("summary".to_string(), serde_json::Value::String(self.summary.clone()));
@@ -352,7 +352,7 @@ impl CommunityNode {
             summary_embedding: None,
         }
     }
-    
+
     pub fn with_summary_embedding(mut self, embedding: Vec<f64>) -> Self {
         self.summary_embedding = Some(embedding);
         self
@@ -364,23 +364,23 @@ impl Node for CommunityNode {
     fn uuid(&self) -> &str {
         &self.base.uuid
     }
-    
+
     fn name(&self) -> &str {
         &self.base.name
     }
-    
+
     fn group_id(&self) -> &str {
         &self.base.group_id
     }
-    
+
     fn labels(&self) -> &[String] {
         &self.base.labels
     }
-    
+
     fn created_at(&self) -> DateTime<Utc> {
         self.base.created_at
     }
-    
+
     async fn save(&self, graph: &Graph) -> Result<(), GraphitiError> {
         let query = Query::new(
             "MERGE (n:Community {uuid: $uuid})
@@ -402,7 +402,7 @@ impl Node for CommunityNode {
 
         Ok(())
     }
-    
+
     async fn delete(&self, graph: &Graph) -> Result<(), GraphitiError> {
         let query = Query::new(
             "MATCH (n:Community {uuid: $uuid})
@@ -414,7 +414,7 @@ impl Node for CommunityNode {
 
         Ok(())
     }
-    
+
     fn attributes(&self) -> HashMap<String, serde_json::Value> {
         let mut attrs = HashMap::new();
         attrs.insert("summary".to_string(), serde_json::Value::String(self.summary.clone()));
@@ -455,7 +455,7 @@ mod tests {
             "Test content".to_string(),
             Utc::now(),
         );
-        
+
         assert_eq!(node.name(), "Episode 1");
         assert_eq!(node.source, EpisodeType::Text);
         assert_eq!(node.content, "Test content");

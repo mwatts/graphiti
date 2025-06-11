@@ -86,19 +86,19 @@ impl OpenAiClient {
         let api_key = config.api_key.clone().ok_or_else(|| LlmError::Authentication {
             message: "OpenAI API key is required".to_string(),
         })?;
-        
+
         let base_url = config.base_url.clone()
             .unwrap_or_else(|| DEFAULT_BASE_URL.to_string());
-            
+
         let base_client = BaseLlmClient::new(config, cache_enabled)?;
-        
+
         let http_client = Client::builder()
             .timeout(std::time::Duration::from_secs(120))
             .build()
             .map_err(|e| LlmError::InvalidConfig {
                 message: format!("Failed to create HTTP client: {}", e),
             })?;
-        
+
         Ok(Self {
             base_client,
             http_client,
@@ -107,7 +107,7 @@ impl OpenAiClient {
             max_retries: 2,
         })
     }
-    
+
     async fn generate_response_internal(
         &self,
         messages: &[Message],
@@ -121,14 +121,14 @@ impl OpenAiClient {
             ModelSize::Medium => self.base_client.config.model.as_deref()
                 .unwrap_or(DEFAULT_MODEL),
         };
-        
+
         let openai_messages: Vec<OpenAiMessage> = messages.iter()
             .map(|m| OpenAiMessage {
                 role: m.role.clone(),
                 content: self.base_client.clean_input(&m.content),
             })
             .collect();
-        
+
         let mut request = OpenAiChatRequest {
             model: model.to_string(),
             messages: openai_messages,
@@ -136,7 +136,7 @@ impl OpenAiClient {
             max_tokens: max_tokens.unwrap_or(self.base_client.config.max_tokens),
             response_format: None,
         };
-        
+
         // Add JSON schema if response model is provided
         if let Some(schema) = response_model {
             if let Ok(schema_value) = serde_json::from_str::<Value>(schema) {
@@ -146,9 +146,9 @@ impl OpenAiClient {
                 }));
             }
         }
-        
+
         let url = format!("{}/chat/completions", self.base_url);
-        
+
         let response = self.http_client
             .post(&url)
             .header("Authorization", format!("Bearer {}", self.api_key))
@@ -157,11 +157,11 @@ impl OpenAiClient {
             .send()
             .await
             .map_err(|e| LlmError::Http(e))?;
-        
+
         if response.status() == 429 {
             return Err(LlmError::RateLimit);
         }
-        
+
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
@@ -169,31 +169,31 @@ impl OpenAiClient {
                 message: format!("HTTP {} - {}", status, error_text),
             });
         }
-        
+
         let chat_response: OpenAiChatResponse = response.json().await
             .map_err(|e| LlmError::NetworkError {
                 message: format!("Failed to parse JSON response: {}", e),
             })?;
-        
+
         if let Some(error) = chat_response.error {
             return Err(LlmError::Authentication {
                 message: error.message,
             });
         }
-        
+
         let choice = chat_response.choices.into_iter().next()
             .ok_or_else(|| LlmError::EmptyResponse {
                 message: "No choices in response".to_string(),
             })?;
-        
+
         if let Some(refusal) = choice.message.refusal {
             return Err(LlmError::Refusal { message: refusal });
         }
-        
+
         let content = choice.message.content.ok_or_else(|| LlmError::EmptyResponse {
             message: "No content in response".to_string(),
         })?;
-        
+
         // Try to parse as JSON first, if that fails return as plain text
         let mut result = HashMap::new();
         if let Ok(json_value) = serde_json::from_str::<Value>(&content) {
@@ -205,7 +205,7 @@ impl OpenAiClient {
         } else {
             result.insert("content".to_string(), Value::String(content));
         }
-        
+
         Ok(result)
     }
 }
@@ -226,14 +226,14 @@ impl LlmClient for OpenAiClient {
                 return Ok(cached_response);
             }
         }
-        
+
         // Prepare messages with schema and multilingual instructions
         let prepared_messages = self.base_client.prepare_messages(messages.to_vec(), response_model);
-        
+
         let mut retry_count = 0;
         let mut last_error = None;
         let mut current_messages = prepared_messages;
-        
+
         while retry_count <= self.max_retries {
             match self.generate_response_internal(
                 &current_messages,
@@ -256,18 +256,18 @@ impl LlmClient for OpenAiClient {
                 Err(e) => {
                     // Store error details as string to avoid clone issues
                     let error_details = format!("{:?}", e);
-                    
+
                     if retry_count >= self.max_retries {
                         error!("Max retries ({}) exceeded. Last error: {:?}", self.max_retries, e);
                         return Err(e);
                     }
-                    
-                    last_error = Some(LlmError::EmptyResponse { 
-                        message: error_details.clone() 
+
+                    last_error = Some(LlmError::EmptyResponse {
+                        message: error_details.clone()
                     });
-                    
+
                     retry_count += 1;
-                    
+
                     // Add error context for retry
                     let error_context = format!(
                         "The previous response attempt was invalid. \
@@ -276,19 +276,19 @@ impl LlmClient for OpenAiClient {
                         the expected format and constraints.",
                         std::any::type_name_of_val(&e)
                     );
-                    
+
                     current_messages.push(Message::user(error_context));
-                    warn!("Retrying after application error (attempt {}/{}): {:?}", 
+                    warn!("Retrying after application error (attempt {}/{}): {:?}",
                           retry_count, self.max_retries, e);
                 }
             }
         }
-        
+
         Err(last_error.unwrap_or_else(|| LlmError::EmptyResponse {
             message: "Max retries exceeded with no specific error".to_string(),
         }))
     }
-    
+
     async fn chat_completion(
         &self,
         messages: &[Message],

@@ -6,7 +6,7 @@ description = "A temporal graph building library for AI agents"
 license = "Apache-2.0"
 authors = [
     "Paul Paliychuk <paul@getzep.com>",
-    "Preston Rasmussen <preston@getzep.com>", 
+    "Preston Rasmussen <preston@getzep.com>",
     "Daniel Chalef <daniel@getzep.com>",
 ]
 
@@ -29,7 +29,10 @@ moka = { workspace = true }
 tokio-retry = { workspace = true }
 dotenvy = { workspace = true }
 futures = { workspace = true }
+bincode = "1.3"
+tokio-stream = "0.1"
 
 [dev-dependencies]
 tokio-test = "0.4"
 mockall = "0.12"
+tempfile = "3.0"

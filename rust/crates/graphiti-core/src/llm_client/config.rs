@@ -54,32 +54,32 @@ impl LlmConfig {
     pub fn new() -> Self {
         Self::default()
     }
-    
+
     pub fn with_api_key(mut self, api_key: String) -> Self {
         self.api_key = Some(api_key);
         self
     }
-    
+
     pub fn with_model(mut self, model: String) -> Self {
         self.model = Some(model);
         self
     }
-    
+
     pub fn with_base_url(mut self, base_url: String) -> Self {
         self.base_url = Some(base_url);
         self
     }
-    
+
     pub fn with_temperature(mut self, temperature: f32) -> Self {
         self.temperature = temperature;
         self
     }
-    
+
     pub fn with_max_tokens(mut self, max_tokens: u32) -> Self {
         self.max_tokens = max_tokens;
         self
     }
-    
+
     pub fn with_small_model(mut self, small_model: String) -> Self {
         self.small_model = Some(small_model);
         self

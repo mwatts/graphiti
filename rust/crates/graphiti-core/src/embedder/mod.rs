@@ -16,6 +16,8 @@ limitations under the License.
 
 pub mod client;
 pub mod openai;
+pub mod cached;
 
 pub use client::{EmbedderClient, EmbedderConfig, EMBEDDING_DIM};
 pub use openai::OpenAiEmbedder;
+pub use cached::CachedEmbedderClient;

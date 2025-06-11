@@ -27,7 +27,7 @@ use super::config::{LlmConfig, ModelSize};
 use super::models::Message;
 
 const DEFAULT_CACHE_DIR: &str = "./llm_cache";
-const MULTILINGUAL_EXTRACTION_RESPONSES: &str = 
+const MULTILINGUAL_EXTRACTION_RESPONSES: &str =
     "\n\nAny extracted information should be returned in the same language as it was written in.";
 
 /// Trait for LLM clients that can generate responses
@@ -41,22 +41,22 @@ pub trait LlmClient: Send + Sync {
         max_tokens: Option<u32>,
         model_size: ModelSize,
     ) -> LlmResult<HashMap<String, Value>>;
-    
+
     /// Chat completion method (for compatibility with cross encoder)
     async fn chat_completion(
         &self,
         messages: &[Message],
         json_params: Option<Value>,
     ) -> LlmResult<Value>;
-    
+
     /// Generate a simple text response
     async fn generate_text(&self, messages: &[Message]) -> LlmResult<String> {
         let response = self.generate_response(messages, None, None, ModelSize::Medium).await?;
         response.get("content")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string())
-            .ok_or_else(|| LlmError::EmptyResponse { 
-                message: "No content field in response".to_string() 
+            .ok_or_else(|| LlmError::EmptyResponse {
+                message: "No content field in response".to_string()
             })
     }
 }
@@ -72,20 +72,20 @@ impl BaseLlmClient {
     pub fn new(config: LlmConfig, cache_enabled: bool) -> LlmResult<Self> {
         let cache = if cache_enabled {
             Some(sled::open(DEFAULT_CACHE_DIR)
-                .map_err(|e| LlmError::InvalidConfig { 
-                    message: format!("Failed to open cache: {}", e) 
+                .map_err(|e| LlmError::InvalidConfig {
+                    message: format!("Failed to open cache: {}", e)
                 })?)
         } else {
             None
         };
-        
+
         Ok(Self {
             config,
             cache_enabled,
             cache,
         })
     }
-    
+
     /// Clean input string of invalid unicode and control characters
     pub fn clean_input(&self, input: &str) -> String {
         // Remove zero-width characters and other invisible unicode
@@ -94,26 +94,26 @@ impl BaseLlmClient {
         for char in zero_width_chars {
             cleaned = cleaned.replace(char, "");
         }
-        
+
         // Remove control characters except newlines, returns, and tabs
         cleaned.chars()
             .filter(|&c| (c as u32) >= 32 || c == '\n' || c == '\r' || c == '\t')
             .collect()
     }
-    
+
     /// Generate cache key for messages
     pub fn get_cache_key(&self, messages: &[Message]) -> String {
         let messages_json = serde_json::to_string(messages).unwrap_or_default();
-        let key_string = format!("{}:{}", 
-            self.config.model.as_deref().unwrap_or("default"), 
+        let key_string = format!("{}:{}",
+            self.config.model.as_deref().unwrap_or("default"),
             messages_json
         );
-        
+
         let mut hasher = Sha256::new();
         hasher.update(key_string.as_bytes());
         format!("{:x}", hasher.finalize())
     }
-    
+
     /// Check cache for response
     pub async fn get_cached_response(&self, cache_key: &str) -> Option<HashMap<String, Value>> {
         if let Some(cache) = &self.cache {
@@ -126,7 +126,7 @@ impl BaseLlmClient {
         }
         None
     }
-    
+
     /// Store response in cache
     pub async fn cache_response(&self, cache_key: &str, response: &HashMap<String, Value>) {
         if let Some(cache) = &self.cache {
@@ -136,7 +136,7 @@ impl BaseLlmClient {
             }
         }
     }
-    
+
     /// Prepare messages for LLM call
     pub fn prepare_messages(&self, mut messages: Vec<Message>, response_model: Option<&str>) -> Vec<Message> {
         // Add response model schema if provided
@@ -148,20 +148,20 @@ impl BaseLlmClient {
                 ));
             }
         }
-        
+
         // Add multilingual extraction instructions
         if let Some(first_msg) = messages.first_mut() {
             first_msg.content.push_str(MULTILINGUAL_EXTRACTION_RESPONSES);
         }
-        
+
         // Clean all message content
         for message in &mut messages {
             message.content = self.clean_input(&message.content);
         }
-        
+
         messages
     }
-    
+
     /// Execute with retry logic
     pub async fn execute_with_retry<F, Fut, T>(&self, operation: F) -> LlmResult<T>
     where
@@ -171,15 +171,15 @@ impl BaseLlmClient {
         let retry_strategy = ExponentialBackoff::from_millis(5000)
             .max_delay(Duration::from_secs(120))
             .take(4);
-            
+
         let retry_condition = |error: &LlmError| {
-            matches!(error, 
-                LlmError::RateLimit | 
+            matches!(error,
+                LlmError::RateLimit |
                 LlmError::Http(_) |
                 LlmError::Timeout { .. }
             )
         };
-        
+
         RetryIf::spawn(retry_strategy, operation, retry_condition)
             .await
             .map_err(|e| {

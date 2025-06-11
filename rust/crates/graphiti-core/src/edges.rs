@@ -28,25 +28,25 @@ use crate::errors::GraphitiError;
 pub trait Edge: Send + Sync {
     /// Get the UUID of the edge
     fn uuid(&self) -> &str;
-    
+
     /// Get the group_id of the edge
     fn group_id(&self) -> &str;
-    
+
     /// Get the source node UUID
     fn source_node_uuid(&self) -> &str;
-    
+
     /// Get the target node UUID
     fn target_node_uuid(&self) -> &str;
-    
+
     /// Get the creation timestamp
     fn created_at(&self) -> DateTime<Utc>;
-    
+
     /// Save the edge to the database
     async fn save(&self, graph: &Graph) -> Result<(), GraphitiError>;
-    
+
     /// Delete the edge from the database
     async fn delete(&self, graph: &Graph) -> Result<(), GraphitiError>;
-    
+
     /// Get additional attributes as key-value pairs
     fn attributes(&self) -> HashMap<String, serde_json::Value>;
 }
@@ -75,12 +75,12 @@ impl BaseEdge {
             created_at: Utc::now(),
         }
     }
-    
+
     pub fn with_uuid(mut self, uuid: String) -> Self {
         self.uuid = uuid;
         self
     }
-    
+
     pub fn with_created_at(mut self, created_at: DateTime<Utc>) -> Self {
         self.created_at = created_at;
         self
@@ -123,23 +123,23 @@ impl Edge for EpisodicEdge {
     fn uuid(&self) -> &str {
         &self.base.uuid
     }
-    
+
     fn group_id(&self) -> &str {
         &self.base.group_id
     }
-    
+
     fn source_node_uuid(&self) -> &str {
         &self.base.source_node_uuid
     }
-    
+
     fn target_node_uuid(&self) -> &str {
         &self.base.target_node_uuid
     }
-    
+
     fn created_at(&self) -> DateTime<Utc> {
         self.base.created_at
     }
-    
+
     async fn save(&self, graph: &Graph) -> Result<(), GraphitiError> {
         let query = Query::new(
             "MATCH (episode:Episodic {uuid: $episode_uuid})
@@ -159,7 +159,7 @@ impl Edge for EpisodicEdge {
 
         Ok(())
     }
-    
+
     async fn delete(&self, graph: &Graph) -> Result<(), GraphitiError> {
         let query = Query::new(
             "MATCH ()-[r:MENTIONS {uuid: $uuid}]->()
@@ -171,7 +171,7 @@ impl Edge for EpisodicEdge {
 
         Ok(())
     }
-    
+
     fn attributes(&self) -> HashMap<String, serde_json::Value> {
         HashMap::new()
     }
@@ -209,17 +209,17 @@ impl EntityEdge {
             invalid_at: None,
         }
     }
-    
+
     pub fn with_episodes(mut self, episodes: Vec<String>) -> Self {
         self.episodes = episodes;
         self
     }
-    
+
     pub fn with_expired_at(mut self, expired_at: DateTime<Utc>) -> Self {
         self.expired_at = Some(expired_at);
         self
     }
-    
+
     pub fn with_invalid_at(mut self, invalid_at: DateTime<Utc>) -> Self {
         self.invalid_at = Some(invalid_at);
         self
@@ -231,23 +231,23 @@ impl Edge for EntityEdge {
     fn uuid(&self) -> &str {
         &self.base.uuid
     }
-    
+
     fn group_id(&self) -> &str {
         &self.base.group_id
     }
-    
+
     fn source_node_uuid(&self) -> &str {
         &self.base.source_node_uuid
     }
-    
+
     fn target_node_uuid(&self) -> &str {
         &self.base.target_node_uuid
     }
-    
+
     fn created_at(&self) -> DateTime<Utc> {
         self.base.created_at
     }
-    
+
     async fn save(&self, graph: &Graph) -> Result<(), GraphitiError> {
         let query = Query::new(
             "MATCH (source:Entity {uuid: $source_uuid})
@@ -279,7 +279,7 @@ impl Edge for EntityEdge {
 
         Ok(())
     }
-    
+
     async fn delete(&self, graph: &Graph) -> Result<(), GraphitiError> {
         let query = Query::new(
             "MATCH ()-[r:RELATES_TO {uuid: $uuid}]->()
@@ -291,22 +291,22 @@ impl Edge for EntityEdge {
 
         Ok(())
     }
-    
+
     fn attributes(&self) -> HashMap<String, serde_json::Value> {
         let mut attrs = HashMap::new();
         attrs.insert("name".to_string(), serde_json::Value::String(self.name.clone()));
         attrs.insert("fact".to_string(), serde_json::Value::String(self.fact.clone()));
         attrs.insert("episodes".to_string(), serde_json::to_value(&self.episodes).unwrap());
         attrs.insert("valid_at".to_string(), serde_json::Value::String(self.valid_at.to_rfc3339()));
-        
+
         if let Some(expired_at) = self.expired_at {
             attrs.insert("expired_at".to_string(), serde_json::Value::String(expired_at.to_rfc3339()));
         }
-        
+
         if let Some(invalid_at) = self.invalid_at {
             attrs.insert("invalid_at".to_string(), serde_json::Value::String(invalid_at.to_rfc3339()));
         }
-        
+
         attrs
     }
 }
@@ -335,23 +335,23 @@ impl Edge for CommunityEdge {
     fn uuid(&self) -> &str {
         &self.base.uuid
     }
-    
+
     fn group_id(&self) -> &str {
         &self.base.group_id
     }
-    
+
     fn source_node_uuid(&self) -> &str {
         &self.base.source_node_uuid
     }
-    
+
     fn target_node_uuid(&self) -> &str {
         &self.base.target_node_uuid
     }
-    
+
     fn created_at(&self) -> DateTime<Utc> {
         self.base.created_at
     }
-    
+
     async fn save(&self, graph: &Graph) -> Result<(), GraphitiError> {
         let query = Query::new(
             "MATCH (entity:Entity {uuid: $entity_uuid})
@@ -371,7 +371,7 @@ impl Edge for CommunityEdge {
 
         Ok(())
     }
-    
+
     async fn delete(&self, graph: &Graph) -> Result<(), GraphitiError> {
         let query = Query::new(
             "MATCH ()-[r:HAS_MEMBER {uuid: $uuid}]->()
@@ -383,7 +383,7 @@ impl Edge for CommunityEdge {
 
         Ok(())
     }
-    
+
     fn attributes(&self) -> HashMap<String, serde_json::Value> {
         HashMap::new()
     }
@@ -400,7 +400,7 @@ mod tests {
             "source-uuid".to_string(),
             "target-uuid".to_string(),
         );
-        
+
         assert_eq!(edge.group_id, "group1");
         assert_eq!(edge.source_node_uuid, "source-uuid");
         assert_eq!(edge.target_node_uuid, "target-uuid");
@@ -417,7 +417,7 @@ mod tests {
             "entity1 relates to entity2".to_string(),
             Utc::now(),
         );
-        
+
         assert_eq!(edge.name, "relationship");
         assert_eq!(edge.fact, "entity1 relates to entity2");
         assert_eq!(edge.base.source_node_uuid, "entity1");
@@ -431,7 +431,7 @@ mod tests {
             "episode1".to_string(),
             "entity1".to_string(),
         );
-        
+
         assert_eq!(edge.base.source_node_uuid, "episode1");
         assert_eq!(edge.base.target_node_uuid, "entity1");
     }

@@ -37,7 +37,12 @@ impl Default for EmbedderConfig {
 pub trait EmbedderClient: Send + Sync {
     /// Create embeddings for a single text input
     async fn create(&self, input_data: &str) -> GraphitiResult<Vec<f32>>;
-    
+
+    /// Create embeddings for a query (alias for create for compatibility)
+    async fn embed_query(&self, query: &str) -> GraphitiResult<Vec<f32>> {
+        self.create(query).await
+    }
+
     /// Create embeddings for multiple text inputs
     async fn create_batch(&self, input_data_list: &[String]) -> GraphitiResult<Vec<Vec<f32>>> {
         let mut results = Vec::with_capacity(input_data_list.len());
