@@ -29,6 +29,7 @@ pub mod embedder;
 pub mod errors;
 pub mod llm_client;
 pub mod nodes;
+pub mod prompts;
 pub mod search;
 pub mod types;
 
@@ -61,6 +62,9 @@ pub use cache::{Cache, CacheConfig, CacheStats, generate_cache_key};
 
 // Re-export bulk operations
 pub use bulk::BulkOperations;
+
+// Re-export prompts
+pub use prompts::{PromptLibrary, Message as PromptMessage, get_prompt_library};
 
 #[cfg(test)]
 mod tests {

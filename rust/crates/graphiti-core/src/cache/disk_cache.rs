@@ -339,7 +339,7 @@ mod tests {
     async fn test_disk_cache_persistence() {
         let temp_dir = tempdir().unwrap();
         let base_path = temp_dir.path().to_string_lossy().to_string();
-        
+
         let key = "persist_key";
         let value = b"persist_value".to_vec();
 
