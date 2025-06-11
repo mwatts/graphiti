@@ -7,7 +7,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -41,10 +41,10 @@ async fn search(
             // Convert search results to facts
             let facts: Vec<FactResult> = results.edges.iter().map(|edge| {
                 FactResult {
-                    fact: edge.fact.clone(),
-                    uuid: edge.base.uuid.to_string(),
-                    valid_at: edge.valid_at.map(|dt| dt.to_rfc3339()),
-                    invalid_at: edge.invalid_at.map(|dt| dt.to_rfc3339()),
+                    fact: edge.item.fact.clone(),
+                    uuid: edge.item.base.uuid.to_string(),
+                    valid_at: Some(edge.item.valid_at.to_rfc3339()),
+                    invalid_at: edge.item.invalid_at.map(|dt| dt.to_rfc3339()),
                     source_description: "".to_string(), // TODO: Add source description to edges
                     episodes: Vec::new(), // TODO: Add episode references
                 }
@@ -68,7 +68,7 @@ async fn get_entity_edge(
             let fact = FactResult {
                 fact: edge.fact,
                 uuid: edge.base.uuid.to_string(),
-                valid_at: edge.valid_at.map(|dt| dt.to_rfc3339()),
+                valid_at: Some(edge.valid_at.to_rfc3339()),
                 invalid_at: edge.invalid_at.map(|dt| dt.to_rfc3339()),
                 source_description: "".to_string(), // TODO: Add source description
                 episodes: Vec::new(), // TODO: Add episode references
@@ -117,10 +117,10 @@ async fn get_memory(
         Ok(results) => {
             let facts: Vec<FactResult> = results.edges.iter().map(|edge| {
                 FactResult {
-                    fact: edge.fact.clone(),
-                    uuid: edge.base.uuid.to_string(),
-                    valid_at: edge.valid_at.map(|dt| dt.to_rfc3339()),
-                    invalid_at: edge.invalid_at.map(|dt| dt.to_rfc3339()),
+                    fact: edge.item.fact.clone(),
+                    uuid: edge.item.base.uuid.to_string(),
+                    valid_at: Some(edge.item.valid_at.to_rfc3339()),
+                    invalid_at: edge.item.invalid_at.map(|dt| dt.to_rfc3339()),
                     source_description: "".to_string(),
                     episodes: Vec::new(),
                 }
