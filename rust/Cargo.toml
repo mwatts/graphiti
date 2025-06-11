@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/graphiti-core",
+    "bin/server",
 ]
 resolver = "2"
 

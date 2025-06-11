@@ -1,0 +1,52 @@
+[package]
+name = "graphiti-server"
+version = "0.1.0"
+edition = "2021"
+description = "HTTP API server for Graphiti graph database"
+authors = ["Mark Watts <mark.watts@example.com>"]
+
+[[bin]]
+name = "graphiti-server"
+path = "src/main.rs"
+
+[dependencies]
+# Core graphiti dependency
+graphiti-core = { path = "../../crates/graphiti-core" }
+
+# Web framework
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Configuration
+config = { workspace = true }
+dotenvy = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# UUID and time
+uuid = { workspace = true }
+chrono = { workspace = true }
+
+# Validation
+validator = { workspace = true }
+
+# Async traits
+async-trait = { workspace = true }
+
+[dev-dependencies]
+tower-test = "0.4"
+hyper = "1.0"
