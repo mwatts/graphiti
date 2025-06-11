@@ -56,7 +56,9 @@ pub fn update_edge_temporal_bounds(
     invalid_at: Option<DateTime<Utc>>,
     current_time: DateTime<Utc>,
 ) {
-    edge.valid_at = valid_at;
+    if let Some(valid_time) = valid_at {
+        edge.valid_at = valid_time;
+    }
     edge.invalid_at = invalid_at;
 
     // If the edge is invalid, mark it as expired

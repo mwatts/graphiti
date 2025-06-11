@@ -99,14 +99,14 @@ impl Graphiti {
         let driver = Graph::connect(graph_config).await?;
 
         // Initialize cache if configured
-        let cache: Option<Arc<dyn Cache>> = if let Some(cache_config) = config.cache_config {
-            Some(cache_config.build()?)
+        let cache: Option<Arc<dyn Cache + Send + Sync>> = if let Some(cache_config) = config.cache_config {
+            Some(Arc::new(crate::cache::memory_cache::MemoryCache::new(cache_config)))
         } else {
             None
         };
 
         // Initialize default clients
-        let llm_client: Arc<dyn LlmClient> = Arc::new(OpenAiClient::new(Default::default())?);
+        let llm_client: Arc<dyn LlmClient> = Arc::new(OpenAiClient::new(Default::default(), false)?);
         let embedder: Arc<dyn EmbedderClient> = Arc::new(OpenAiEmbedder::new(Default::default())?);
         let cross_encoder: Arc<dyn CrossEncoderClient> = Arc::new(OpenAIRerankerClient::new(Default::default())?);
 
@@ -114,21 +114,21 @@ impl Graphiti {
         let cached_llm_client = if let Some(cache) = &cache {
             crate::llm_client::CachedLlmClient::new(llm_client, cache.clone())
         } else {
-            crate::llm_client::CachedLlmClient::new(llm_client, Arc::new(crate::cache::memory_cache::MemoryCache::new()))
+            crate::llm_client::CachedLlmClient::new(llm_client, Arc::new(crate::cache::memory_cache::MemoryCache::new(CacheConfig::default())))
         };
 
         let cached_embedder = if let Some(cache) = &cache {
             crate::embedder::CachedEmbedderClient::new(embedder, cache.clone())
         } else {
-            crate::embedder::CachedEmbedderClient::new(embedder, Arc::new(crate::cache::memory_cache::MemoryCache::new()))
+            crate::embedder::CachedEmbedderClient::new(embedder, Arc::new(crate::cache::memory_cache::MemoryCache::new(CacheConfig::default())))
         };
 
         let clients = GraphitiClients {
-            driver,
+            driver: Arc::new(driver),
             llm_client: Arc::new(cached_llm_client),
             embedder: Arc::new(cached_embedder),
             cross_encoder,
-            cache,
+            cache: cache.unwrap_or_else(|| Arc::new(crate::cache::memory_cache::MemoryCache::new(CacheConfig::default()))),
         };
 
         Ok(Self {
@@ -156,18 +156,18 @@ impl Graphiti {
         let driver = Graph::connect(graph_config).await?;
 
         // Initialize cache if configured
-        let cache: Option<Arc<dyn Cache>> = if let Some(cache_config) = config.cache_config {
-            Some(cache_config.build()?)
+        let cache: Option<Arc<dyn Cache + Send + Sync>> = if let Some(cache_config) = config.cache_config {
+            Some(Arc::new(crate::cache::memory_cache::MemoryCache::new(cache_config)))
         } else {
             None
         };
 
         let clients = GraphitiClients {
-            driver,
+            driver: Arc::new(driver),
             llm_client,
             embedder,
             cross_encoder,
-            cache,
+            cache: cache.unwrap_or_else(|| Arc::new(crate::cache::memory_cache::MemoryCache::new(CacheConfig::default()))),
         };
 
         Ok(Self {
@@ -370,8 +370,15 @@ impl Graphiti {
         config: Option<SearchConfig>,
         filters: Option<SearchFilters>,
     ) -> Result<SearchResults, GraphitiError> {
-        let search = GraphitiSearch::new(&self.clients);
-        search.search(query, config, filters).await
+        let search = GraphitiSearch::new(self.clients.clone());
+        let default_config = SearchConfig::default();
+        let default_filters = SearchFilters::default();
+        search.search(
+            query,
+            config.as_ref().unwrap_or(&default_config),
+            filters.as_ref().unwrap_or(&default_filters),
+            None
+        ).await
     }
 
     /// Get access to the clients for advanced operations

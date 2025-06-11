@@ -36,17 +36,23 @@ pub async fn validate_graph_consistency(
 
     for edge in edges {
         if !node_uuids.contains(&edge.base.source_node_uuid) {
-            report.orphaned_edges.push(edge.base.uuid.parse().unwrap_or_default());
+            if let Ok(uuid) = edge.base.uuid.parse::<Uuid>() {
+                report.orphaned_edges.push(uuid);
+            }
         }
         if !node_uuids.contains(&edge.base.target_node_uuid) {
-            report.orphaned_edges.push(edge.base.uuid.parse().unwrap_or_default());
+            if let Ok(uuid) = edge.base.uuid.parse::<Uuid>() {
+                report.orphaned_edges.push(uuid);
+            }
         }
     }
 
     // Check for self-loops
     for edge in edges {
         if edge.base.source_node_uuid == edge.base.target_node_uuid {
-            report.self_loops.push(edge.base.uuid.parse().unwrap_or_default());
+            if let Ok(uuid) = edge.base.uuid.parse::<Uuid>() {
+                report.self_loops.push(uuid);
+            }
         }
     }
 
@@ -98,14 +104,20 @@ pub fn cleanup_graph_data(
 ) -> (Vec<EntityNode>, Vec<EntityEdge>) {
     // Remove edges with orphaned references
     edges.retain(|edge| {
-        let edge_uuid: Uuid = edge.base.uuid.parse().unwrap_or_default();
-        !validation_report.orphaned_edges.contains(&edge_uuid)
+        if let Ok(edge_uuid) = edge.base.uuid.parse::<Uuid>() {
+            !validation_report.orphaned_edges.contains(&edge_uuid)
+        } else {
+            true // Keep edges with invalid UUIDs for now
+        }
     });
 
     // Remove self-loops if desired
     edges.retain(|edge| {
-        let edge_uuid: Uuid = edge.base.uuid.parse().unwrap_or_default();
-        !validation_report.self_loops.contains(&edge_uuid)
+        if let Ok(edge_uuid) = edge.base.uuid.parse::<Uuid>() {
+            !validation_report.self_loops.contains(&edge_uuid)
+        } else {
+            true // Keep edges with invalid UUIDs for now
+        }
     });
 
     // For duplicate node names, keep only the first occurrence
@@ -124,7 +136,7 @@ pub fn cleanup_graph_data(
 /// Merge similar nodes based on similarity threshold
 pub fn merge_similar_nodes(
     nodes: Vec<EntityNode>,
-    similarity_threshold: f64,
+    _similarity_threshold: f64,
 ) -> (Vec<EntityNode>, HashMap<Uuid, Uuid>) {
     // Stub implementation - would use embedding similarity to merge nodes
     // Returns (merged_nodes, uuid_mapping)

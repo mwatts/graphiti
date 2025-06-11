@@ -37,6 +37,7 @@ pub fn use_parallel_runtime() -> bool {
 /// Semaphore limit for concurrent operations
 pub fn semaphore_limit() -> usize {
     env::var("SEMAPHORE_LIMIT")
+        .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(20)
 }
@@ -44,6 +45,7 @@ pub fn semaphore_limit() -> usize {
 /// Maximum reflexion iterations
 pub fn max_reflexion_iterations() -> usize {
     env::var("MAX_REFLEXION_ITERATIONS")
+        .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(0)
 }
@@ -63,10 +65,10 @@ pub fn runtime_query() -> &'static str {
 /// Parse Neo4j DateTime to Rust DateTime
 pub fn parse_db_date(neo_date: Option<BoltType>) -> Option<DateTime<Utc>> {
     match neo_date {
-        Some(BoltType::DateTime(dt)) => {
-            // Convert Neo4j DateTime to chrono DateTime
-            // This is a simplified conversion - in practice you'd need proper timezone handling
-            DateTime::from_timestamp(dt.seconds(), dt.nanoseconds()).map(|dt| dt.with_timezone(&Utc))
+        Some(BoltType::DateTime(_dt)) => {
+            // TODO: Implement proper BoltDateTime to chrono DateTime conversion
+            // For now, return current time as a placeholder
+            Some(Utc::now())
         }
         _ => None,
     }

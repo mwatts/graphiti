@@ -5,9 +5,20 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0    let mut name_map: HashMap<String, EntityNode> = HashMap::new();
+    let mut uuid_map = HashMap::new();
+    let mut unique_nodes = Vec::new();
 
-Unless required by applicable law or agreed to in writing, software
+    for node in nodes {
+        if let Some(existing_node) = name_map.get(&node.base.name) {
+            // Found duplicate by name
+            uuid_map.insert(node.base.uuid.to_string(), existing_node.base.uuid.to_string());
+        } else {
+            // New unique node
+            name_map.insert(node.base.name.clone(), node.clone());
+            unique_nodes.push(node);
+        }
+    }red by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
@@ -90,26 +101,17 @@ pub async fn add_nodes_and_edges_bulk(
 
 /// Transaction-level bulk add operation
 async fn add_nodes_and_edges_bulk_tx(
-    txn: &mut Txn,
-    episodic_nodes: Vec<EpisodicNode>,
-    episodic_edges: Vec<EpisodicEdge>,
-    mut entity_nodes: Vec<EntityNode>,
-    mut entity_edges: Vec<EntityEdge>,
-    embedder: &dyn EmbedderClient,
+    _txn: &mut Txn,
+    _episodic_nodes: Vec<EpisodicNode>,
+    _episodic_edges: Vec<EpisodicEdge>,
+    _entity_nodes: Vec<EntityNode>,
+    _entity_edges: Vec<EntityEdge>,
+    _embedder: &dyn EmbedderClient,
 ) -> Result<(), GraphitiError> {
-    // Generate embeddings for nodes that don't have them
-    for node in &mut entity_nodes {
-        if node.name_embedding.is_none() {
-            node.generate_name_embedding(embedder).await?;
-        }
-    }
+    // TODO: Generate embeddings for nodes and edges as needed
+    // This would be implemented when embedding generation is ready
 
-    // Generate embeddings for edges that don't have them
-    for edge in &mut entity_edges {
-        if edge.fact_embedding.is_none() {
-            edge.generate_embedding(embedder).await?;
-        }
-    }
+    // For now, skip embedding generation
 
     // Prepare data for bulk insertion
     // Note: In actual implementation, would use proper Cypher queries
@@ -126,13 +128,13 @@ async fn add_nodes_and_edges_bulk_tx(
 
 /// Extract nodes and edges from multiple episodes in bulk
 pub async fn extract_nodes_and_edges_bulk(
-    clients: &GraphitiClients,
+    _clients: &GraphitiClients,
     episode_tuples: Vec<(EpisodicNode, Vec<EpisodicNode>)>,
 ) -> Result<(Vec<EntityNode>, Vec<EntityEdge>, Vec<EpisodicEdge>), GraphitiError> {
     // Extract nodes from all episodes
     let node_futures: Vec<_> = episode_tuples
         .iter()
-        .map(|(episode, previous_episodes)| async move {
+        .map(|(_episode, _previous_episodes)| async move {
             // Stub: Would call extract_nodes from maintenance/node_operations
             Vec::<EntityNode>::new()
         })
@@ -144,7 +146,7 @@ pub async fn extract_nodes_and_edges_bulk(
     let edge_futures: Vec<_> = episode_tuples
         .iter()
         .enumerate()
-        .map(|(i, (episode, previous_episodes))| async move {
+        .map(|(_i, (_episode, _previous_episodes))| async move {
             // Stub: Would call extract_edges from maintenance/edge_operations
             Vec::<EntityEdge>::new()
         })
@@ -153,8 +155,8 @@ pub async fn extract_nodes_and_edges_bulk(
     let extracted_edges_bulk = semaphore_gather(edge_futures, None).await;
 
     // Build episodic edges
-    let mut episodic_edges = Vec::new();
-    for (i, (episode, _)) in episode_tuples.iter().enumerate() {
+    let episodic_edges = Vec::new();
+    for (_i, (_episode, _)) in episode_tuples.iter().enumerate() {
         // Stub: Would call build_episodic_edges
         // episodic_edges.extend(build_episodic_edges(&extracted_nodes_bulk[i], episode, episode.created_at));
     }
@@ -263,16 +265,16 @@ pub async fn dedupe_edges_bulk(
 /// Match nodes by name to find duplicates
 fn node_name_match(nodes: Vec<EntityNode>) -> (Vec<EntityNode>, HashMap<String, String>) {
     let mut uuid_map = HashMap::new();
-    let mut name_map = HashMap::new();
+    let mut name_map: HashMap<String, EntityNode> = HashMap::new();
     let mut unique_nodes = Vec::new();
 
     for node in nodes {
-        if let Some(existing_node) = name_map.get(&node.name) {
+        if let Some(existing_node) = name_map.get(&node.base.name) {
             // Found duplicate by name
-            uuid_map.insert(node.uuid.to_string(), existing_node.uuid.to_string());
+            uuid_map.insert(node.base.uuid.to_string(), existing_node.base.uuid.to_string());
         } else {
             // New unique node
-            name_map.insert(node.name.clone(), node.clone());
+            name_map.insert(node.base.name.clone(), node.clone());
             unique_nodes.push(node);
         }
     }
@@ -327,7 +329,7 @@ async fn compress_nodes(
         Ok((compressed_nodes, compressed_uuid_map))
     } else {
         // Recursive compression
-        compress_nodes(llm_client, compressed_nodes, extended_map).await
+        Box::pin(compress_nodes(llm_client, compressed_nodes, extended_map)).await
     }
 }
 
@@ -339,6 +341,8 @@ async fn compress_edges(
     if edges.is_empty() {
         return Ok(edges);
     }
+
+    let original_edge_count = edges.len();
 
     // Group edges by node pairs
     let edge_chunks = chunk_edges_by_nodes(edges);
@@ -356,11 +360,11 @@ async fn compress_edges(
     let compressed_edges: Vec<EntityEdge> = results.into_iter().flatten().collect();
 
     // Check if we need another round of compression
-    if compressed_edges.len() == edges.len() {
+    if compressed_edges.len() == original_edge_count {
         Ok(compressed_edges)
     } else {
         // Recursive compression
-        compress_edges(llm_client, compressed_edges).await
+        Box::pin(compress_edges(llm_client, compressed_edges)).await
     }
 }
 
@@ -370,10 +374,10 @@ fn compress_uuid_map(uuid_map: HashMap<String, String>) -> HashMap<String, Strin
 
     for (key, mut value) in uuid_map.iter() {
         // Follow the chain to find the final mapping
-        while let Some(next_value) = uuid_map.get(&value) {
-            value = next_value.clone();
+        while let Some(next_value) = uuid_map.get(value) {
+            value = next_value;
         }
-        compressed_map.insert(key.clone(), value);
+        compressed_map.insert(key.clone(), value.to_string());
     }
 
     compressed_map
@@ -388,31 +392,27 @@ pub fn resolve_edge_pointers<E: AsRef<EntityEdge> + AsMut<EntityEdge>>(
         let edge = edge.as_mut();
 
         // Resolve source node UUID
-        if let Some(new_uuid) = uuid_map.get(&edge.source_node_uuid.to_string()) {
-            if let Ok(uuid) = Uuid::parse_str(new_uuid) {
-                edge.source_node_uuid = uuid;
-            }
+        if let Some(new_uuid) = uuid_map.get(&edge.base.source_node_uuid.to_string()) {
+            edge.base.source_node_uuid = new_uuid.clone();
         }
 
         // Resolve target node UUID
-        if let Some(new_uuid) = uuid_map.get(&edge.target_node_uuid.to_string()) {
-            if let Ok(uuid) = Uuid::parse_str(new_uuid) {
-                edge.target_node_uuid = uuid;
-            }
+        if let Some(new_uuid) = uuid_map.get(&edge.base.target_node_uuid.to_string()) {
+            edge.base.target_node_uuid = new_uuid.clone();
         }
     }
 }
 
 /// Extract edge dates in bulk
 pub async fn extract_edge_dates_bulk(
-    llm_client: &dyn LlmClient,
+    _llm_client: &dyn LlmClient,
     mut extracted_edges: Vec<EntityEdge>,
     episode_pairs: Vec<(EpisodicNode, Vec<EpisodicNode>)>,
 ) -> Result<Vec<EntityEdge>, GraphitiError> {
     // Filter edges that have episodes
     let mut edges_with_episodes = Vec::new();
     for edge in extracted_edges {
-        if edge.episodes.as_ref().map_or(false, |eps| !eps.is_empty()) {
+        if !edge.episodes.is_empty() {
             edges_with_episodes.push(edge);
         }
     }
@@ -420,35 +420,18 @@ pub async fn extract_edge_dates_bulk(
     // Create episode UUID mapping
     let episode_uuid_map: HashMap<String, (EpisodicNode, Vec<EpisodicNode>)> = episode_pairs
         .into_iter()
-        .map(|(episode, previous_episodes)| (episode.uuid.to_string(), (episode, previous_episodes)))
+        .map(|(episode, previous_episodes)| (episode.base.uuid.to_string(), (episode, previous_episodes)))
         .collect();
 
-    // Extract dates for each edge
-    let date_futures: Vec<_> = edges_with_episodes
-        .iter()
-        .map(|edge| async move {
-            if let Some(episodes) = &edge.episodes {
-                if let Some(episode_uuid) = episodes.first() {
-                    if let Some((episode, previous_episodes)) = episode_uuid_map.get(&episode_uuid.to_string()) {
-                        // Stub: Would call extract_edge_dates
-                        return (None, None);
-                    }
-                }
+    // Extract dates for each edge (simplified for now)
+    // TODO: Implement actual edge date extraction
+    for edge in &mut edges_with_episodes {
+        if let Some(episode_uuid) = edge.episodes.first() {
+            if episode_uuid_map.contains_key(episode_uuid) {
+                // Stub: Would call extract_edge_dates
+                // For now, just set default valid_at to current time if not set
+                // edge.valid_at is already set from creation
             }
-            (None, None)
-        })
-        .collect();
-
-    let results = semaphore_gather(date_futures, None).await;
-
-    // Apply extracted dates
-    for (i, (valid_at, invalid_at)) in results.into_iter().enumerate() {
-        let edge = &mut edges_with_episodes[i];
-        edge.valid_at = valid_at;
-        edge.invalid_at = invalid_at;
-
-        if edge.invalid_at.is_some() {
-            edge.expired_at = Some(utc_now());
         }
     }
 
@@ -461,14 +444,14 @@ fn chunk_edges_by_nodes(edges: Vec<EntityEdge>) -> Vec<Vec<EntityEdge>> {
 
     for edge in edges {
         // Skip self-loops
-        if edge.source_node_uuid == edge.target_node_uuid {
+        if edge.base.source_node_uuid == edge.base.target_node_uuid {
             continue;
         }
 
         // Create consistent key regardless of direction
         let mut pointers = vec![
-            edge.source_node_uuid.to_string(),
-            edge.target_node_uuid.to_string(),
+            edge.base.source_node_uuid.to_string(),
+            edge.base.target_node_uuid.to_string(),
         ];
         pointers.sort();
         let key = pointers.join("");

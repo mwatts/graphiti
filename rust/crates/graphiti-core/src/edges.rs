@@ -226,6 +226,18 @@ impl EntityEdge {
     }
 }
 
+impl AsRef<EntityEdge> for EntityEdge {
+    fn as_ref(&self) -> &EntityEdge {
+        self
+    }
+}
+
+impl AsMut<EntityEdge> for EntityEdge {
+    fn as_mut(&mut self) -> &mut EntityEdge {
+        self
+    }
+}
+
 #[async_trait]
 impl Edge for EntityEdge {
     fn uuid(&self) -> &str {
