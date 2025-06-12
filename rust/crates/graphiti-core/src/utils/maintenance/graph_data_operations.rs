@@ -17,10 +17,10 @@ limitations under the License.
 //! Graph data operations for maintenance
 
 use chrono::{DateTime, Utc};
-use neo4rs::Graph;
 use crate::{
     nodes::EpisodicNode,
     errors::GraphitiError,
+    database::GraphDatabase,
 };
 
 /// Episode window length for retrieving context
@@ -28,25 +28,25 @@ pub const EPISODE_WINDOW_LEN: usize = 10;
 
 /// Retrieve episodes from the database
 pub async fn retrieve_episodes(
-    _graph: &Graph,
+    _database: &dyn GraphDatabase,
     _reference_time: DateTime<Utc>,
     _last_n: usize,
     _group_ids: &[String],
 ) -> Result<Vec<EpisodicNode>, GraphitiError> {
-    // Stub implementation - would query Neo4j for episodes
-    // Would use Cypher queries to get episodes within time window and group constraints
+    // Stub implementation - would query database for episodes
+    // Would use database abstraction to get episodes within time window and group constraints
 
     Ok(Vec::new())
 }
 
 /// Get episode context for processing
 pub async fn get_episode_context(
-    graph: &Graph,
+    database: &dyn GraphDatabase,
     episode: &EpisodicNode,
     window_size: usize,
 ) -> Result<Vec<EpisodicNode>, GraphitiError> {
     retrieve_episodes(
-        graph,
+        database,
         episode.valid_at,
         window_size,
         &[episode.base.group_id.clone()],
@@ -55,7 +55,7 @@ pub async fn get_episode_context(
 
 /// Clean up expired episodes
 pub async fn cleanup_expired_episodes(
-    _graph: &Graph,
+    _database: &dyn GraphDatabase,
     _cutoff_time: DateTime<Utc>,
     _group_id: Option<&str>,
 ) -> Result<usize, GraphitiError> {

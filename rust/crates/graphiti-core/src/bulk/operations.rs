@@ -63,7 +63,7 @@ impl BulkOperations {
         // TODO: Implement optimized Cypher query for batch node creation
         // This would use UNWIND to create multiple nodes in a single query
 
-        let _graph = &self.clients.driver;
+        let database = &self.clients.database;
 
         // For now, create individual nodes (inefficient, but shows structure)
         for node in nodes {
@@ -75,6 +75,7 @@ impl BulkOperations {
             // Would execute:
             // UNWIND $nodes AS nodeData
             // CREATE (n:Entity {uuid: nodeData.uuid, name: nodeData.name, ...})
+            let _ = database;
         }
 
         Ok(())
@@ -98,7 +99,7 @@ impl BulkOperations {
     async fn create_edges_batch(&self, edges: &[EntityEdge]) -> Result<(), GraphitiError> {
         // TODO: Implement optimized Cypher query for batch edge creation
 
-        let _graph = &self.clients.driver;
+        let database = &self.clients.database;
 
         // For now, create individual edges (inefficient, but shows structure)
         for edge in edges {
@@ -110,6 +111,7 @@ impl BulkOperations {
             // UNWIND $edges AS edgeData
             // MATCH (source:Entity {uuid: edgeData.source}), (target:Entity {uuid: edgeData.target})
             // CREATE (source)-[r:RELATIONSHIP {uuid: edgeData.uuid, ...}]->(target)
+            let _ = database;
         }
 
         Ok(())
@@ -134,7 +136,7 @@ impl BulkOperations {
     async fn update_nodes_batch(&self, updates: &[(String, HashMap<String, serde_json::Value>)]) -> Result<(), GraphitiError> {
         // TODO: Implement optimized Cypher query for batch node updates
 
-        let _graph = &self.clients.driver;
+        let database = &self.clients.database;
 
         for (uuid, properties) in updates {
             let _node_uuid = uuid;
@@ -144,6 +146,7 @@ impl BulkOperations {
             // UNWIND $updates AS updateData
             // MATCH (n:Entity {uuid: updateData.uuid})
             // SET n += updateData.properties
+            let _ = database;
         }
 
         Ok(())
@@ -170,7 +173,7 @@ impl BulkOperations {
     async fn delete_nodes_batch(&self, uuids: &[String]) -> Result<usize, GraphitiError> {
         // TODO: Implement optimized Cypher query for batch node deletion
 
-        let _graph = &self.clients.driver;
+        let database = &self.clients.database;
         let batch_size = uuids.len();
 
         for uuid in uuids {
@@ -180,6 +183,7 @@ impl BulkOperations {
             // UNWIND $uuids AS uuid
             // MATCH (n:Entity {uuid: uuid})
             // DETACH DELETE n
+            let _ = database;
         }
 
         // Return number of nodes that would be deleted
@@ -207,7 +211,7 @@ impl BulkOperations {
     async fn delete_edges_batch(&self, uuids: &[String]) -> Result<usize, GraphitiError> {
         // TODO: Implement optimized Cypher query for batch edge deletion
 
-        let _graph = &self.clients.driver;
+        let database = &self.clients.database;
         let batch_size = uuids.len();
 
         for uuid in uuids {
@@ -217,6 +221,7 @@ impl BulkOperations {
             // UNWIND $uuids AS uuid
             // MATCH ()-[r {uuid: uuid}]-()
             // DELETE r
+            let _ = database;
         }
 
         // Return number of edges that would be deleted

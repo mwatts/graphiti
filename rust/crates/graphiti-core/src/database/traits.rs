@@ -25,7 +25,7 @@ use chrono::{DateTime, Utc};
 use super::types::{DatabaseResult, DatabaseError};
 
 /// Represents a query parameter value
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum QueryParameter {
     String(String),
     Integer(i64),

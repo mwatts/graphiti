@@ -16,9 +16,11 @@ limitations under the License.
 
 //! Community operations for graph clustering and analysis
 
-use neo4rs::Graph;
 use uuid::Uuid;
-use crate::errors::GraphitiError;
+use crate::{
+    errors::GraphitiError,
+    database::GraphDatabase,
+};
 
 /// Community detection result
 #[derive(Debug, Clone)]
@@ -30,7 +32,7 @@ pub struct Community {
 
 /// Detect communities in the graph using clustering algorithms
 pub async fn detect_communities(
-    _graph: &Graph,
+    _database: &dyn GraphDatabase,
     _group_id: &str,
     _algorithm: CommunityAlgorithm,
 ) -> Result<Vec<Community>, GraphitiError> {
@@ -50,7 +52,7 @@ pub enum CommunityAlgorithm {
 
 /// Update community assignments for nodes
 pub async fn update_community_assignments(
-    _graph: &Graph,
+    _database: &dyn GraphDatabase,
     _communities: &[Community],
     _group_id: &str,
 ) -> Result<(), GraphitiError> {
@@ -61,7 +63,7 @@ pub async fn update_community_assignments(
 
 /// Get community statistics
 pub async fn get_community_stats(
-    _graph: &Graph,
+    _database: &dyn GraphDatabase,
     _community_id: &str,
     _group_id: &str,
 ) -> Result<CommunityStats, GraphitiError> {
@@ -81,7 +83,7 @@ pub struct CommunityStats {
 
 /// Find bridge nodes between communities
 pub async fn find_bridge_nodes(
-    _graph: &Graph,
+    _database: &dyn GraphDatabase,
     _group_id: &str,
 ) -> Result<Vec<Uuid>, GraphitiError> {
     // Stub implementation - would identify nodes that connect different communities

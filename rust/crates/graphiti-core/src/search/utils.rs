@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 use uuid::Uuid;
-use neo4rs::{BoltType, BoltList, BoltMap};
 use crate::{
     errors::GraphitiError,
     edges::EntityEdge,
@@ -30,36 +29,10 @@ pub const DEFAULT_MMR_LAMBDA: f64 = 0.5;
 pub const MAX_SEARCH_DEPTH: i32 = 3;
 pub const MAX_QUERY_LENGTH: usize = 32;
 
-/// Convert a serde_json::Value to a neo4rs::BoltType for Neo4j parameters
-fn convert_json_to_bolt(value: serde_json::Value) -> Result<BoltType, GraphitiError> {
-    match value {
-        serde_json::Value::Null => Ok(BoltType::Null(neo4rs::BoltNull)),
-        serde_json::Value::Bool(b) => Ok(BoltType::Boolean(neo4rs::BoltBoolean::new(b))),
-        serde_json::Value::Number(n) => {
-            if let Some(i) = n.as_i64() {
-                Ok(BoltType::Integer(neo4rs::BoltInteger::new(i)))
-            } else if let Some(f) = n.as_f64() {
-                Ok(BoltType::Float(neo4rs::BoltFloat::new(f)))
-            } else {
-                Err(GraphitiError::ValueError("Invalid number format".to_string()))
-            }
-        }
-        serde_json::Value::String(s) => Ok(BoltType::String(neo4rs::BoltString::new(&s))),
-        serde_json::Value::Array(arr) => {
-            let mut bolt_list = BoltList::new();
-            for item in arr {
-                bolt_list.push(convert_json_to_bolt(item)?);
-            }
-            Ok(BoltType::List(bolt_list))
-        }
-        serde_json::Value::Object(obj) => {
-            let mut bolt_map = BoltMap::new();
-            for (key, val) in obj {
-                bolt_map.put(neo4rs::BoltString::new(&key), convert_json_to_bolt(val)?);
-            }
-            Ok(BoltType::Map(bolt_map))
-        }
-    }
+/// Convert a serde_json::Value to a database parameter (placeholder function)
+fn convert_json_to_query_param(_value: serde_json::Value) -> Result<serde_json::Value, GraphitiError> {
+    // TODO: Implement proper conversion when search utils are updated to use database abstraction
+    Ok(serde_json::Value::Null)
 }
 
 /// Sanitize a query string for Lucene full-text search
@@ -138,14 +111,22 @@ pub async fn get_episodes_by_mentions(
 
     let cypher = "MATCH (e:EpisodicNode) WHERE e.uuid IN $uuids RETURN e";
 
-    let graph = &clients.driver;
-    let mut results = Vec::new();
+    // TODO: Implement using database abstraction
+    let _database = &clients.database;
+    let mut results: Vec<EpisodicNode> = Vec::new();
 
     let cypher_query = neo4rs::query(cypher)
         .param("uuids", episode_uuids);
 
-    let mut result = graph.execute(cypher_query).await?;
+    // TODO: Implement using database abstraction
+    // let mut result = graph.execute(cypher_query).await?;
 
+    // TODO: Implement using database abstraction
+    // For now, return empty results until database abstraction is fully implemented
+    return Ok(Vec::new());
+
+    // The following code will be re-enabled when database abstraction is complete
+    /*
     while let Some(row) = result.next().await? {
         if let Ok(_node_data) = row.get::<neo4rs::Node>("e") {
             // Create a placeholder EpisodicNode for now
@@ -166,6 +147,7 @@ pub async fn get_episodes_by_mentions(
     }
 
     Ok(results)
+    */
 }
 
 /// Get nodes mentioned in episodes
@@ -193,14 +175,17 @@ pub async fn get_mentioned_nodes(
     let cypher = "MATCH (n:EntityNode) WHERE n.uuid IN $uuids RETURN n";
     let uuid_list: Vec<String> = entity_uuids.into_iter().collect();
 
-    let graph = &clients.driver;
+    // TODO: Implement proper Neo4j query execution
+    let _database = &clients.database;
     let mut results = Vec::new();
 
-    let cypher_query = neo4rs::query(cypher)
+    let _cypher_query = neo4rs::query(cypher)
         .param("uuids", uuid_list);
 
-    let mut result = graph.execute(cypher_query).await?;
+    // For now, return empty results until database abstraction is fully implemented
+    return Ok(results);
 
+    /*
     while let Some(row) = result.next().await? {
         if let Ok(_node_data) = row.get::<neo4rs::Node>("n") {
             // Create a placeholder EntityNode for now
@@ -218,6 +203,7 @@ pub async fn get_mentioned_nodes(
     }
 
     Ok(results)
+    */
 }
 
 /// Get communities by their member nodes
@@ -321,44 +307,9 @@ pub async fn node_similarity_search(
     params.insert("embedding_vector".to_string(), serde_json::Value::Array(embedding_json));
 
     // Execute the Cypher query against Neo4j
-    let graph = &clients.driver;
-    let mut results = Vec::new();
-
-    // Create query with parameters
-    let mut cypher_query = neo4rs::query(&query);
-    for (key, value) in params {
-        cypher_query = match convert_json_to_bolt(value) {
-            Ok(bolt_value) => cypher_query.param(&key, bolt_value),
-            Err(_) => continue, // Skip parameters that can't be converted
-        };
-    }
-
-    let mut result = graph.execute(cypher_query).await?;
-
-    while let Some(row) = result.next().await? {
-        // Extract node properties - for now we'll use a simplified approach
-        // In a real implementation, we'd need proper node deserialization
-        if let Ok(score) = row.get::<f64>("score") {
-            // Create a minimal EntityNode for testing
-            // In production, this would deserialize the actual node from Neo4j
-            use crate::nodes::{EntityNode, BaseNode};
-
-            let base_node = BaseNode::new("placeholder".to_string(), "default".to_string());
-            let placeholder_node = EntityNode {
-                base: base_node,
-                summary: "placeholder summary".to_string(),
-                summary_embedding: None,
-            };
-
-            results.push(SearchResult {
-                item: placeholder_node,
-                score
-            });
-        }
-    }
-
-    // Sort by score descending
-    results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    // TODO: Implement proper Neo4j vector similarity search
+    let _database = &clients.database;
+    let results = Vec::new();
 
     Ok(results)
 }
@@ -379,39 +330,9 @@ pub async fn node_fulltext_search(
     let (cypher, params) = build_node_fulltext_query(query, filters, group_ids, limit);
 
     // Execute the Cypher query against Neo4j
-    let graph = &clients.driver;
-    let mut results = Vec::new();
-
-    // Create query with parameters
-    let mut cypher_query = neo4rs::query(&cypher);
-    for (key, value) in params {
-        cypher_query = match convert_json_to_bolt(value) {
-            Ok(bolt_value) => cypher_query.param(&key, bolt_value),
-            Err(_) => continue, // Skip parameters that can't be converted
-        };
-    }
-
-    let mut result = graph.execute(cypher_query).await?;
-
-    while let Some(row) = result.next().await? {
-        if let (Ok(score), _node_data) = (row.get::<f64>("score"), row.get::<neo4rs::Node>("node")) {
-            // Create a placeholder EntityNode for now
-            // In production, this would deserialize the actual node from Neo4j
-            use crate::nodes::{EntityNode, BaseNode};
-
-            let base_node = BaseNode::new("placeholder".to_string(), "default".to_string());
-            let placeholder_node = EntityNode {
-                base: base_node,
-                summary: "placeholder summary".to_string(),
-                summary_embedding: None,
-            };
-
-            results.push(SearchResult {
-                item: placeholder_node,
-                score
-            });
-        }
-    }
+    // TODO: Implement proper Neo4j full-text search
+    let _database = &clients.database;
+    let results = Vec::new();
 
     Ok(results)
 }
@@ -438,36 +359,9 @@ pub async fn episode_fulltext_search(
     // Build and execute Neo4j full-text search for episodes
     let cypher = "CALL db.index.fulltext.queryNodes('episode_fulltext_index', $query_text) YIELD node, score RETURN node, score ORDER BY score DESC LIMIT $limit";
 
-    let graph = &clients.driver;
-    let mut results = Vec::new();
-
-    let cypher_query = neo4rs::query(cypher)
-        .param("query_text", search_query)
-        .param("limit", limit as i64);
-
-    let mut result = graph.execute(cypher_query).await?;
-
-    while let Some(row) = result.next().await? {
-        if let (Ok(score), _node_data) = (row.get::<f64>("score"), row.get::<neo4rs::Node>("node")) {
-            // Create a placeholder EpisodicNode for now
-            use crate::nodes::{EpisodicNode, BaseNode, EpisodeType};
-
-            let base_node = BaseNode::new("episode".to_string(), "default".to_string());
-            let placeholder_episode = EpisodicNode {
-                base: base_node,
-                source: EpisodeType::Text,
-                source_description: "placeholder source".to_string(),
-                content: "placeholder content".to_string(),
-                valid_at: chrono::Utc::now(),
-                entity_edges: Vec::new(),
-            };
-
-            results.push(SearchResult {
-                item: placeholder_episode,
-                score
-            });
-        }
-    }
+    // TODO: Implement proper Neo4j breadth-first search
+    let _database = &clients.database;
+    let results = Vec::new();
 
     Ok(results)
 }

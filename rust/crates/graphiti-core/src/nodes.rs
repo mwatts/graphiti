@@ -16,12 +16,14 @@ limitations under the License.
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use neo4rs::{Graph, Query};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::errors::GraphitiError;
+use crate::{
+    errors::GraphitiError,
+    database::{GraphDatabase, QueryParameter},
+};
 
 /// Enumeration of different types of episodes that can be processed.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -69,10 +71,10 @@ pub trait Node: Send + Sync {
     fn created_at(&self) -> DateTime<Utc>;
 
     /// Save the node to the database
-    async fn save(&self, graph: &Graph) -> Result<(), GraphitiError>;
+    async fn save(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError>;
 
     /// Delete the node from the database
-    async fn delete(&self, graph: &Graph) -> Result<(), GraphitiError>;
+    async fn delete(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError>;
 
     /// Get additional attributes as key-value pairs
     fn attributes(&self) -> HashMap<String, serde_json::Value>;
@@ -115,15 +117,8 @@ impl BaseNode {
     }
 
     /// Delete node by group_id
-    pub async fn delete_by_group_id(graph: &Graph, group_id: &str) -> Result<(), GraphitiError> {
-        let query = Query::new(
-            "MATCH (n:Entity|Episodic|Community {group_id: $group_id})
-             DETACH DELETE n".to_string()
-        ).param("group_id", group_id);
-
-        let _ = graph.execute(query).await
-            .map_err(|e| GraphitiError::Database(e))?;
-
+    pub async fn delete_by_group_id(database: &dyn GraphDatabase, group_id: &str) -> Result<(), GraphitiError> {
+        database.delete_by_group_id(group_id).await?;
         Ok(())
     }
 }
@@ -194,43 +189,43 @@ impl Node for EpisodicNode {
         self.base.created_at
     }
 
-    async fn save(&self, graph: &Graph) -> Result<(), GraphitiError> {
-        let query = Query::new(
-            "MERGE (n:Episodic {uuid: $uuid})
-             SET n.name = $name,
-                 n.group_id = $group_id,
-                 n.created_at = $created_at,
-                 n.source = $source,
-                 n.source_description = $source_description,
-                 n.content = $content,
-                 n.valid_at = $valid_at,
-                 n.entity_edges = $entity_edges".to_string()
-        )
-        .param("uuid", self.base.uuid.clone())
-        .param("name", self.base.name.clone())
-        .param("group_id", self.base.group_id.clone())
-        .param("created_at", self.base.created_at.timestamp())
-        .param("source", serde_json::to_string(&self.source).unwrap())
-        .param("source_description", self.source_description.clone())
-        .param("content", self.content.clone())
-        .param("valid_at", self.valid_at.timestamp())
-        .param("entity_edges", self.entity_edges.clone());
+    async fn save(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
+        use crate::database::traits::QueryParameter;
+        
+        // Convert node attributes to database parameters
+        let mut properties = HashMap::new();
+        properties.insert("uuid".to_string(), QueryParameter::String(self.base.uuid.clone()));
+        properties.insert("name".to_string(), QueryParameter::String(self.base.name.clone()));
+        properties.insert("group_id".to_string(), QueryParameter::String(self.base.group_id.clone()));
+        properties.insert("created_at".to_string(), QueryParameter::String(self.base.created_at.to_rfc3339()));
+        
+        // Convert EpisodeType to string
+        let source_str = match self.source {
+            EpisodeType::Message => "message",
+            EpisodeType::Json => "json", 
+            EpisodeType::Text => "text",
+        };
+        properties.insert("source".to_string(), QueryParameter::String(source_str.to_string()));
+        properties.insert("source_description".to_string(), QueryParameter::String(self.source_description.clone()));
+        properties.insert("content".to_string(), QueryParameter::String(self.content.clone()));
+        properties.insert("valid_at".to_string(), QueryParameter::String(self.valid_at.to_rfc3339()));
+        
+        // Convert entity_edges to string representation
+        let entity_edges_json = serde_json::to_string(&self.entity_edges).unwrap_or_default();
+        properties.insert("entity_edges".to_string(), QueryParameter::String(entity_edges_json));
 
-        let _ = graph.execute(query).await
-            .map_err(|e| GraphitiError::Database(e))?;
-
+        // Check if node exists, then create or update
+        if let Some(_existing) = database.get_node(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))? {
+            database.update_node(&self.base.uuid, properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        } else {
+            database.create_node(self.base.labels.clone(), properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        }
+        
         Ok(())
     }
 
-    async fn delete(&self, graph: &Graph) -> Result<(), GraphitiError> {
-        let query = Query::new(
-            "MATCH (n:Episodic {uuid: $uuid})
-             DETACH DELETE n".to_string()
-        ).param("uuid", self.base.uuid.clone());
-
-        let _ = graph.execute(query).await
-            .map_err(|e| GraphitiError::Database(e))?;
-
+    async fn delete(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
+        database.delete_node(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
         Ok(())
     }
 
@@ -291,37 +286,35 @@ impl Node for EntityNode {
         self.base.created_at
     }
 
-    async fn save(&self, graph: &Graph) -> Result<(), GraphitiError> {
-        let query = Query::new(
-            "MERGE (n:Entity {uuid: $uuid})
-             SET n.name = $name,
-                 n.group_id = $group_id,
-                 n.created_at = $created_at,
-                 n.summary = $summary,
-                 n.summary_embedding = $summary_embedding".to_string()
-        )
-        .param("uuid", self.base.uuid.clone())
-        .param("name", self.base.name.clone())
-        .param("group_id", self.base.group_id.clone())
-        .param("created_at", self.base.created_at.timestamp())
-        .param("summary", self.summary.clone())
-        .param("summary_embedding", self.summary_embedding.clone());
+    async fn save(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
+        use crate::database::traits::QueryParameter;
+        
+        // Convert node attributes to database parameters
+        let mut properties = HashMap::new();
+        properties.insert("uuid".to_string(), QueryParameter::String(self.base.uuid.clone()));
+        properties.insert("name".to_string(), QueryParameter::String(self.base.name.clone()));
+        properties.insert("group_id".to_string(), QueryParameter::String(self.base.group_id.clone()));
+        properties.insert("created_at".to_string(), QueryParameter::String(self.base.created_at.to_rfc3339()));
+        properties.insert("summary".to_string(), QueryParameter::String(self.summary.clone()));
+        
+        // Handle optional summary_embedding
+        if let Some(ref embedding) = self.summary_embedding {
+            let embedding_json = serde_json::to_string(embedding).unwrap_or_default();
+            properties.insert("summary_embedding".to_string(), QueryParameter::String(embedding_json));
+        }
 
-        let _ = graph.execute(query).await
-            .map_err(|e| GraphitiError::Database(e))?;
-
+        // Check if node exists, then create or update
+        if let Some(_existing) = database.get_node(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))? {
+            database.update_node(&self.base.uuid, properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        } else {
+            database.create_node(self.base.labels.clone(), properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        }
+        
         Ok(())
     }
 
-    async fn delete(&self, graph: &Graph) -> Result<(), GraphitiError> {
-        let query = Query::new(
-            "MATCH (n:Entity {uuid: $uuid})
-             DETACH DELETE n".to_string()
-        ).param("uuid", self.base.uuid.clone());
-
-        let _ = graph.execute(query).await
-            .map_err(|e| GraphitiError::Database(e))?;
-
+    async fn delete(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
+        database.delete_node(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
         Ok(())
     }
 
@@ -381,37 +374,35 @@ impl Node for CommunityNode {
         self.base.created_at
     }
 
-    async fn save(&self, graph: &Graph) -> Result<(), GraphitiError> {
-        let query = Query::new(
-            "MERGE (n:Community {uuid: $uuid})
-             SET n.name = $name,
-                 n.group_id = $group_id,
-                 n.created_at = $created_at,
-                 n.summary = $summary,
-                 n.summary_embedding = $summary_embedding".to_string()
-        )
-        .param("uuid", self.base.uuid.clone())
-        .param("name", self.base.name.clone())
-        .param("group_id", self.base.group_id.clone())
-        .param("created_at", self.base.created_at.timestamp())
-        .param("summary", self.summary.clone())
-        .param("summary_embedding", self.summary_embedding.clone());
+    async fn save(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
+        use crate::database::traits::QueryParameter;
+        
+        // Convert node attributes to database parameters
+        let mut properties = HashMap::new();
+        properties.insert("uuid".to_string(), QueryParameter::String(self.base.uuid.clone()));
+        properties.insert("name".to_string(), QueryParameter::String(self.base.name.clone()));
+        properties.insert("group_id".to_string(), QueryParameter::String(self.base.group_id.clone()));
+        properties.insert("created_at".to_string(), QueryParameter::String(self.base.created_at.to_rfc3339()));
+        properties.insert("summary".to_string(), QueryParameter::String(self.summary.clone()));
+        
+        // Handle optional summary_embedding
+        if let Some(ref embedding) = self.summary_embedding {
+            let embedding_json = serde_json::to_string(embedding).unwrap_or_default();
+            properties.insert("summary_embedding".to_string(), QueryParameter::String(embedding_json));
+        }
 
-        let _ = graph.execute(query).await
-            .map_err(|e| GraphitiError::Database(e))?;
-
+        // Check if node exists, then create or update
+        if let Some(_existing) = database.get_node(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))? {
+            database.update_node(&self.base.uuid, properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        } else {
+            database.create_node(self.base.labels.clone(), properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        }
+        
         Ok(())
     }
 
-    async fn delete(&self, graph: &Graph) -> Result<(), GraphitiError> {
-        let query = Query::new(
-            "MATCH (n:Community {uuid: $uuid})
-             DETACH DELETE n".to_string()
-        ).param("uuid", self.base.uuid.clone());
-
-        let _ = graph.execute(query).await
-            .map_err(|e| GraphitiError::Database(e))?;
-
+    async fn delete(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
+        database.delete_node(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
         Ok(())
     }
 
