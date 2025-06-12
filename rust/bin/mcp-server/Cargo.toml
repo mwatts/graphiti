@@ -1,0 +1,49 @@
+[package]
+name = "graphiti-mcp-server"
+version = "0.1.0"
+edition = "2021"
+description = "Graphiti MCP Server - Model Context Protocol implementation"
+authors = ["Mark Watts <mark.watts@example.com>"]
+
+[[bin]]
+name = "graphiti-mcp-server"
+path = "src/main.rs"
+
+[dependencies]
+# Core graphiti dependency
+graphiti-core = { path = "../../crates/graphiti-core" }
+
+# Async runtime
+tokio = { workspace = true, features = ["full"] }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Configuration
+dotenvy = { workspace = true }
+clap = { version = "4.0", features = ["derive"] }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# UUID and time
+uuid = { workspace = true }
+chrono = { workspace = true }
+
+# Validation
+validator = { workspace = true }
+
+# Async traits
+async-trait = { workspace = true }
+
+# Futures and async utilities
+futures = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"

@@ -41,15 +41,15 @@ Several high-level operations from the Python version need implementation in gra
    - `save_entity_node()` - Direct entity node creation
    - `get_entity_edge(uuid)` - Get edge by UUID
    - `delete_entity_edge(uuid)` - Delete specific edge
-   
+
 2. **Group Operations**:
    - `delete_group(group_id)` - Delete all data for a group
    - Group filtering in search operations
-   
+
 3. **Episode Management**:
    - `delete_episode(uuid)` - Delete specific episode
    - `retrieve_episodes(group_ids, last_n, reference_time)` - Get recent episodes
-   
+
 4. **Data Operations**:
    - `clear_data()` - Clear all graph data
 
@@ -76,11 +76,11 @@ The server is **functionally operational** for basic use cases (adding episodes,
 ### Priority 1: Core Library Extensions
 Implement the missing high-level operations in graphiti-core to match the Python API:
 - Add direct entity node CRUD operations
-- Add group management functions  
+- Add group management functions
 - Add episode deletion and retrieval
 - Add comprehensive data management operations
 
-### Priority 2: Server Completeness  
+### Priority 2: Server Completeness
 - Remove stub implementations once core library is extended
 - Add async worker queue for message processing
 - Enhance error handling and validation

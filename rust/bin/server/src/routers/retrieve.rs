@@ -49,7 +49,7 @@ async fn search(
                     episodes: Vec::new(), // TODO: Add episode references
                 }
             }).collect();
-            
+
             Ok(Json(SearchResults { facts }))
         }
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
@@ -62,7 +62,7 @@ async fn get_entity_edge(
     Path(uuid): Path<String>,
 ) -> Result<Json<FactResult>, StatusCode> {
     let uuid = Uuid::parse_str(&uuid).map_err(|_| StatusCode::BAD_REQUEST)?;
-    
+
     match service.get_entity_edge(uuid).await {
         Ok(Some(edge)) => {
             let fact = FactResult {
@@ -87,7 +87,7 @@ async fn get_episodes(
     Query(params): Query<GetEpisodesQuery>,
 ) -> Result<Json<Vec<serde_json::Value>>, StatusCode> {
     let reference_time = Utc::now();
-    
+
     match service.retrieve_episodes(vec![group_id], params.last_n, reference_time).await {
         Ok(episodes) => {
             // Convert episodes to JSON

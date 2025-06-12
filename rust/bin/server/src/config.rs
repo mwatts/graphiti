@@ -6,29 +6,29 @@ use std::env;
 pub struct Settings {
     /// OpenAI API key
     pub openai_api_key: String,
-    
+
     /// OpenAI base URL (optional)
     pub openai_base_url: Option<String>,
-    
+
     /// Model name for LLM operations
     pub model_name: Option<String>,
-    
+
     /// Embedding model name
     pub embedding_model_name: Option<String>,
-    
+
     /// Neo4j database URI
     pub neo4j_uri: String,
-    
+
     /// Neo4j username
     pub neo4j_user: String,
-    
+
     /// Neo4j password
     pub neo4j_password: String,
-    
+
     /// Server host
     #[serde(default = "default_host")]
     pub host: String,
-    
+
     /// Server port
     #[serde(default = "default_port")]
     pub port: u16,

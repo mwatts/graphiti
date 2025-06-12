@@ -33,7 +33,7 @@ async fn add_messages(
     // Process each message asynchronously
     // Note: The original Python version uses a queue-based worker for this
     // For now, we'll process them directly
-    
+
     for message in request.messages {
         let episode_body = format!(
             "{}({}): {}",
@@ -41,7 +41,7 @@ async fn add_messages(
             message.role_type.as_deref().unwrap_or(""),
             message.content
         );
-        
+
         match service.add_episode(
             message.name.unwrap_or_else(|| "Message".to_string()),
             episode_body,
@@ -93,7 +93,7 @@ async fn delete_entity_edge(
     Path(uuid): Path<String>,
 ) -> Result<Json<ApiResult>, StatusCode> {
     let uuid = Uuid::parse_str(&uuid).map_err(|_| StatusCode::BAD_REQUEST)?;
-    
+
     match service.delete_entity_edge(uuid).await {
         Ok(_) => Ok(Json(ApiResult {
             message: "Entity Edge deleted".to_string(),
@@ -123,7 +123,7 @@ async fn delete_episode(
     Path(uuid): Path<String>,
 ) -> Result<Json<ApiResult>, StatusCode> {
     let uuid = Uuid::parse_str(&uuid).map_err(|_| StatusCode::BAD_REQUEST)?;
-    
+
     match service.delete_episode(uuid).await {
         Ok(_) => Ok(Json(ApiResult {
             message: "Episode deleted".to_string(),

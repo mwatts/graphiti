@@ -5,7 +5,7 @@ A Rust HTTP API server for the Graphiti temporal graph database.
 ## Features
 
 - **REST API**: Compatible with the Python Graphiti server API
-- **Episode Management**: Add episodes and messages to the temporal graph  
+- **Episode Management**: Add episodes and messages to the temporal graph
 - **Search**: Search for relevant facts and relationships
 - **Entity Management**: Create and manage entity nodes and edges
 - **Group Operations**: Organize data by groups
@@ -51,7 +51,7 @@ cargo run --bin graphiti-server
 - `DELETE /api/ingest/group/{group_id}` - Delete a group
 - `DELETE /api/ingest/episode/{uuid}` - Delete an episode
 
-### Retrieve Operations  
+### Retrieve Operations
 - `POST /api/retrieve/search` - Search for facts
 - `GET /api/retrieve/entity-edge/{uuid}` - Get entity edge by UUID
 - `GET /api/retrieve/episodes/{group_id}` - Get episodes for a group
@@ -71,7 +71,7 @@ cargo run --bin graphiti-server
 ### TODO
 - 🔄 Complete entity node CRUD operations
 - 🔄 Episode retrieval and deletion
-- 🔄 Group management operations  
+- 🔄 Group management operations
 - 🔄 Async worker queue for message processing
 - 🔄 Error handling and validation
 - 🔄 Group filtering in search

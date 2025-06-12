@@ -2,6 +2,7 @@
 members = [
     "crates/graphiti-core",
     "bin/server",
+    "bin/mcp-server",
 ]
 resolver = "2"
 
