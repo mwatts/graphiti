@@ -23,6 +23,9 @@ pub enum GraphitiError {
     #[error("Database error: {0}")]
     Database(#[from] neo4rs::Error),
 
+    #[error("Database error: {0}")]
+    DatabaseLayer(#[from] crate::database::types::DatabaseError),
+
     #[error("LLM error: {0}")]
     Llm(#[from] LlmError),
 

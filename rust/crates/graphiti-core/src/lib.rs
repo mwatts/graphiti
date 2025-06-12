@@ -24,6 +24,7 @@ limitations under the License.
 pub mod bulk;
 pub mod cache;
 pub mod cross_encoder;
+pub mod database;
 pub mod edges;
 pub mod embedder;
 pub mod errors;
@@ -77,6 +78,9 @@ pub use utils::{bulk_utils, datetime_utils, ValidationReport, GraphStats};
 
 // Re-export main Graphiti orchestrator
 pub use graphiti::{Graphiti, GraphitiConfig, AddEpisodeResults};
+
+// Re-export database types
+pub use database::{GraphDatabase, DatabaseConfig, DatabaseType, create_database};
 
 #[cfg(test)]
 mod tests {

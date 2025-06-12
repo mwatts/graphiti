@@ -34,3 +34,5 @@ tags should be used to categorize workitems. The tags should be used as follows:
 - `on hold`: for issues that are on hold or paused
 
 when creating a rust mcp server use the sdk from https://github.com/modelcontextprotocol/rust-sdk and follow the conventions documented in the SDK. The server should be structured in a way that is easy to navigate and understand.
+
+Documentation for KuzuDB is found at https://docs.kuzudb.com and the source repository is at https://github.com/kuzudb/kuzu

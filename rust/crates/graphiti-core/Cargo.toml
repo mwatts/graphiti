@@ -23,6 +23,7 @@ tracing = { workspace = true }
 async-trait = { workspace = true }
 reqwest = { workspace = true }
 neo4rs = { workspace = true }
+kuzu = { workspace = true }
 validator = { workspace = true }
 sled = { workspace = true }
 moka = { workspace = true }

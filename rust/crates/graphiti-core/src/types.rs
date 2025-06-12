@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 use std::sync::Arc;
-use neo4rs::Graph;
+use crate::database::GraphDatabase;
 use crate::llm_client::LlmClient;
 use crate::embedder::EmbedderClient;
 use crate::cross_encoder::CrossEncoderClient;
@@ -24,7 +24,7 @@ use crate::cache::Cache;
 /// Core clients required for Graphiti operations
 #[derive(Clone)]
 pub struct GraphitiClients {
-    pub driver: Arc<Graph>,
+    pub database: Arc<dyn GraphDatabase + Send + Sync>,
     pub llm_client: Arc<dyn LlmClient + Send + Sync>,
     pub embedder: Arc<dyn EmbedderClient + Send + Sync>,
     pub cross_encoder: Arc<dyn CrossEncoderClient + Send + Sync>,
@@ -33,14 +33,14 @@ pub struct GraphitiClients {
 
 impl GraphitiClients {
     pub fn new(
-        driver: Graph,
+        database: Arc<dyn GraphDatabase + Send + Sync>,
         llm_client: Arc<dyn LlmClient + Send + Sync>,
         embedder: Arc<dyn EmbedderClient + Send + Sync>,
         cross_encoder: Arc<dyn CrossEncoderClient + Send + Sync>,
         cache: Arc<dyn Cache + Send + Sync>,
     ) -> Self {
         Self {
-            driver: Arc::new(driver),
+            database,
             llm_client,
             embedder,
             cross_encoder,
@@ -50,4 +50,4 @@ impl GraphitiClients {
 }
 
 /// Default database name constant
-pub const DEFAULT_DATABASE: &str = "neo4j";
+pub const DEFAULT_DATABASE: &str = "graphiti";
