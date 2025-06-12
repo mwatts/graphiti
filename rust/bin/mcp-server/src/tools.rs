@@ -234,10 +234,10 @@ impl GraphitiTools {
 
         info!("Clearing graph for group_id: {}", self.config.group_id);
 
-        // Use the client graph access to delete by group_id
-        let graph = &graphiti.clients().driver;
+        // Use the database abstraction to delete by group_id
+        let database = &graphiti.clients().database;
 
-        match graphiti_core::nodes::BaseNode::delete_by_group_id(graph, &self.config.group_id).await {
+        match database.delete_by_group_id(&self.config.group_id).await {
             Ok(_) => {
                 info!("Graph cleared successfully for group_id: {}", self.config.group_id);
                 json!({"message": format!("Graph cleared successfully for group_id: {}", self.config.group_id)})

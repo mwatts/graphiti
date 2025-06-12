@@ -99,10 +99,16 @@ async fn initialize_graphiti(config: &GraphitiConfig) -> anyhow::Result<Graphiti
 
     // Create core Graphiti config
     let core_config = CoreGraphitiConfig {
-        neo4j_uri: config.neo4j.uri.clone(),
-        neo4j_user: config.neo4j.user.clone(),
-        neo4j_password: config.neo4j.password.clone(),
-        database: config.neo4j.database.clone(),
+        database_config: graphiti_core::database::config::DatabaseConfig {
+            database_type: graphiti_core::database::config::DatabaseType::Neo4j,
+            uri: config.neo4j.uri.clone(),
+            username: Some(config.neo4j.user.clone()),
+            password: Some(config.neo4j.password.clone()),
+            database: config.neo4j.database.clone(),
+            pool_size: Some(10),
+            timeout_seconds: Some(30),
+            additional_config: std::collections::HashMap::new(),
+        },
         store_raw_episode_content: true,
         cache_config: None,
     };

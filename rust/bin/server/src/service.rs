@@ -23,10 +23,16 @@ impl GraphitiService {
     /// Create a new GraphitiService
     pub async fn new(settings: Settings) -> Result<Self> {
         let config = GraphitiConfig {
-            neo4j_uri: settings.neo4j_uri.clone(),
-            neo4j_user: settings.neo4j_user.clone(),
-            neo4j_password: settings.neo4j_password.clone(),
-            database: None,
+            database_config: graphiti_core::database::config::DatabaseConfig {
+                database_type: graphiti_core::database::config::DatabaseType::Neo4j,
+                uri: settings.neo4j_uri.clone(),
+                username: Some(settings.neo4j_user.clone()),
+                password: Some(settings.neo4j_password.clone()),
+                database: None,
+                pool_size: Some(10),
+                timeout_seconds: Some(30),
+                additional_config: std::collections::HashMap::new(),
+            },
             store_raw_episode_content: true,
             cache_config: None,
         };
