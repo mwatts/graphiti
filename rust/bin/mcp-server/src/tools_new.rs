@@ -2,16 +2,21 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use graphiti_core::{
-    nodes::{EpisodeType, Node},
-    edges::Edge,
+    nodes::{EpisodeType, EpisodicNode},
+    edges::EntityEdge,
+    search::{SearchConfig, SearchResults},
     Graphiti,
+    utils::maintenance::graph_data_operations::clear_data,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use tracing::{error, info};
-use chrono::Utc;
+use tokio::sync::Mutex;
+use tracing::{error, info, warn};
+use uuid::Uuid;
+use chrono::{DateTime, Utc};
 
 use crate::config::GraphitiConfig;
+use crate::entities;
 
 /// Response for successful operations
 #[derive(Debug, Serialize)]
@@ -69,6 +74,7 @@ pub struct StatusResponse {
 pub struct GraphitiTools {
     graphiti: Option<Arc<Graphiti>>,
     config: Arc<GraphitiConfig>,
+    episode_queues: Arc<Mutex<HashMap<String, Vec<Box<dyn Fn() + Send + Sync>>>>>,
 }
 
 impl GraphitiTools {
@@ -76,6 +82,7 @@ impl GraphitiTools {
         Self {
             graphiti: Some(Arc::new(graphiti)),
             config: Arc::new(config),
+            episode_queues: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -83,7 +90,6 @@ impl GraphitiTools {
         self.graphiti = Some(Arc::new(graphiti));
     }
 
-    #[allow(dead_code)]
     fn get_graphiti(&self) -> Result<&Arc<Graphiti>, String> {
         self.graphiti.as_ref().ok_or_else(|| {
             "Graphiti client not initialized".to_string()
@@ -113,19 +119,37 @@ impl GraphitiTools {
             .unwrap_or(&self.config.group_id);
         let source = arguments.get("source").and_then(|v| v.as_str()).unwrap_or("text");
         let source_description = arguments.get("source_description").and_then(|v| v.as_str()).unwrap_or("");
+        let uuid_str = arguments.get("uuid").and_then(|v| v.as_str());
 
         let source_type = Self::parse_episode_type(source);
 
-        // Note: UUID and entity_types are not currently supported in the Rust implementation
-        // but we acknowledge the parameters for API compatibility
+        let uuid = if let Some(uuid_str) = uuid_str {
+            match Uuid::parse_str(uuid_str) {
+                Ok(uuid) => Some(uuid),
+                Err(_) => {
+                    return json!({"error": "Invalid UUID format"});
+                }
+            }
+        } else {
+            None
+        };
+
+        // Use entity types if custom entities are enabled
+        let entity_types = if self.config.use_custom_entities {
+            entities::get_entity_types()
+        } else {
+            HashMap::new()
+        };
 
         match graphiti.add_episode(
-            name.to_string(),
-            episode_body.to_string(),
+            name,
+            episode_body,
             source_type,
-            source_description.to_string(),
-            group_id.to_string(),
-            Some(Utc::now()),
+            Some(source_description.to_string()),
+            group_id,
+            uuid,
+            Utc::now(),
+            entity_types,
         ).await {
             Ok(_) => {
                 info!("Episode '{}' added successfully", name);
@@ -146,39 +170,38 @@ impl GraphitiTools {
         };
 
         let query = arguments.get("query").and_then(|v| v.as_str()).unwrap_or("");
+        let group_ids = arguments.get("group_ids")
+            .and_then(|v| v.as_array())
+            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+            .unwrap_or_else(|| vec![self.config.group_id.clone()]);
+        let max_nodes = arguments.get("max_nodes").and_then(|v| v.as_u64()).unwrap_or(10) as usize;
+        let center_node_uuid = arguments.get("center_node_uuid").and_then(|v| v.as_str());
+        let entity_filter = arguments.get("entity").and_then(|v| v.as_str());
 
-        if query.is_empty() {
-            return json!({"error": "Query parameter is required"});
-        }
-
-        info!("Search nodes query: {}", query);
-
-        match graphiti.search(query, None, None).await {
-            Ok(results) => {
-                let nodes: Vec<NodeResult> = results.nodes.into_iter().map(|search_result| {
-                    let node = &search_result.item;
-                    let mut attributes = HashMap::new();
-                    attributes.insert("score".to_string(), json!(search_result.score));
-
-                    NodeResult {
-                        uuid: node.uuid().to_string(),
-                        name: node.name().to_string(),
-                        summary: node.summary.clone(),
-                        labels: node.labels().to_vec(),
-                        group_id: node.group_id().to_string(),
-                        created_at: node.created_at().to_rfc3339(),
-                        attributes,
-                    }
+        // TODO: Implement proper node search using Graphiti's search functionality
+        // For now, return a placeholder response
+        match graphiti.search(&group_ids, query, max_nodes, center_node_uuid.map(|s| s.to_string())).await {
+            Ok(edges) => {
+                // Convert edges to a node-like response for now
+                let facts: Vec<Value> = edges.iter().map(|edge| {
+                    json!({
+                        "uuid": edge.uuid,
+                        "fact": edge.fact,
+                        "source_node_uuid": edge.source_node_uuid,
+                        "target_node_uuid": edge.target_node_uuid,
+                        "created_at": edge.created_at,
+                        "valid": edge.valid
+                    })
                 }).collect();
 
                 json!({
-                    "message": format!("Found {} nodes", nodes.len()),
-                    "nodes": nodes
+                    "message": "Search completed successfully",
+                    "nodes": facts
                 })
             }
             Err(e) => {
-                error!("Search error: {:?}", e);
-                json!({"error": format!("Search failed: {:?}", e)})
+                error!("Error searching nodes: {:?}", e);
+                json!({"error": format!("Error searching nodes: {:?}", e)})
             }
         }
     }
@@ -191,36 +214,36 @@ impl GraphitiTools {
         };
 
         let query = arguments.get("query").and_then(|v| v.as_str()).unwrap_or("");
+        let group_ids = arguments.get("group_ids")
+            .and_then(|v| v.as_array())
+            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+            .unwrap_or_else(|| vec![self.config.group_id.clone()]);
+        let max_facts = arguments.get("max_facts").and_then(|v| v.as_u64()).unwrap_or(10) as usize;
+        let center_node_uuid = arguments.get("center_node_uuid").and_then(|v| v.as_str());
 
-        if query.is_empty() {
-            return json!({"error": "Query parameter is required"});
-        }
-
-        info!("Search facts query: {}", query);
-
-        match graphiti.search(query, None, None).await {
-            Ok(results) => {
-                let facts: Vec<HashMap<String, Value>> = results.edges.into_iter().map(|search_result| {
-                    let edge = &search_result.item;
-                    let mut fact = HashMap::new();
-                    fact.insert("uuid".to_string(), json!(edge.uuid()));
-                    fact.insert("fact".to_string(), json!(edge.fact));
-                    fact.insert("source_node_uuid".to_string(), json!(edge.source_node_uuid()));
-                    fact.insert("target_node_uuid".to_string(), json!(edge.target_node_uuid()));
-                    fact.insert("group_id".to_string(), json!(edge.group_id()));
-                    fact.insert("created_at".to_string(), json!(edge.created_at().to_rfc3339()));
-                    fact.insert("score".to_string(), json!(search_result.score));
-                    fact
+        match graphiti.search(&group_ids, query, max_facts, center_node_uuid.map(|s| s.to_string())).await {
+            Ok(edges) => {
+                let facts: Vec<Value> = edges.iter().map(|edge| {
+                    json!({
+                        "uuid": edge.uuid,
+                        "fact": edge.fact,
+                        "source_node_uuid": edge.source_node_uuid,
+                        "target_node_uuid": edge.target_node_uuid,
+                        "created_at": edge.created_at,
+                        "valid": edge.valid,
+                        "source_node_name": edge.source_node_name,
+                        "target_node_name": edge.target_node_name
+                    })
                 }).collect();
 
                 json!({
-                    "message": format!("Found {} facts", facts.len()),
+                    "message": "Facts retrieved successfully",
                     "facts": facts
                 })
             }
             Err(e) => {
-                error!("Search error: {:?}", e);
-                json!({"error": format!("Search failed: {:?}", e)})
+                error!("Error searching facts: {:?}", e);
+                json!({"error": format!("Error searching facts: {:?}", e)})
             }
         }
     }
@@ -232,15 +255,18 @@ impl GraphitiTools {
             Err(e) => return json!({"error": e}),
         };
 
-        info!("Clearing graph for group_id: {}", self.config.group_id);
-
-        // Use the client graph access to delete by group_id
-        let graph = &graphiti.clients().driver;
-
-        match graphiti_core::nodes::BaseNode::delete_by_group_id(graph, &self.config.group_id).await {
+        match clear_data(&graphiti.driver).await {
             Ok(_) => {
-                info!("Graph cleared successfully for group_id: {}", self.config.group_id);
-                json!({"message": format!("Graph cleared successfully for group_id: {}", self.config.group_id)})
+                match graphiti.build_indices_and_constraints().await {
+                    Ok(_) => {
+                        info!("Graph cleared successfully and indices rebuilt");
+                        json!({"message": "Graph cleared successfully and indices rebuilt"})
+                    }
+                    Err(e) => {
+                        error!("Error rebuilding indices: {:?}", e);
+                        json!({"error": format!("Error rebuilding indices: {:?}", e)})
+                    }
+                }
             }
             Err(e) => {
                 error!("Error clearing graph: {:?}", e);

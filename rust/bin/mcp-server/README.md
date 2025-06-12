@@ -18,7 +18,7 @@ This is a Rust implementation of the Graphiti MCP server that provides memory ca
 
 ### Prerequisites
 
-- Rust 1.70+ 
+- Rust 1.70+
 - Neo4j database running and accessible
 - OpenAI API key (or compatible endpoint)
 
@@ -34,7 +34,7 @@ SMALL_MODEL_NAME=gpt-4.1-nano
 EMBEDDER_MODEL_NAME=text-embedding-3-small
 LLM_TEMPERATURE=0.0
 
-# Neo4j Configuration  
+# Neo4j Configuration
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=your_neo4j_password
@@ -107,7 +107,7 @@ Search for facts (relationships) in the graph.
 
 **Parameters:**
 - `query` (string): Search query
-- `group_ids` (array, optional): Group IDs to filter  
+- `group_ids` (array, optional): Group IDs to filter
 - `max_facts` (integer): Maximum results (default: 10)
 - `center_node_uuid` (string, optional): Center search around node
 
@@ -130,7 +130,7 @@ Add to your Claude Desktop MCP configuration:
       "env": {
         "OPENAI_API_KEY": "your-key-here",
         "NEO4J_URI": "bolt://localhost:7687",
-        "NEO4J_USER": "neo4j", 
+        "NEO4J_USER": "neo4j",
         "NEO4J_PASSWORD": "your-password"
       }
     }

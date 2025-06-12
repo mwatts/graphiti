@@ -115,7 +115,7 @@ The Rust MCP server has been successfully implemented with the following feature
 - **Core Tools**: All primary MCP tools fully implemented
   - `add_memory`: Add episodes to knowledge graph using `graphiti.add_episode()`
   - `search_memory_nodes`: Search for entities using real Graphiti core search API with actual results
-  - `search_memory_facts`: Search for relationships using real Graphiti core search API with actual results  
+  - `search_memory_facts`: Search for relationships using real Graphiti core search API with actual results
   - `clear_graph`: Clear graph data using `BaseNode::delete_by_group_id()`
 - **Transport Support**: stdio transport for MCP clients
 - **Configuration Management**: CLI arguments and environment variables
@@ -127,11 +127,11 @@ The Rust MCP server has been successfully implemented with the following feature
 
 ### 🚀 Real Implementations
 - **Search functionality**: Returns actual EntityNode and EntityEdge results with relevance scores
-- **Clear graph**: Uses actual Graphiti core database deletion operations  
+- **Clear graph**: Uses actual Graphiti core database deletion operations
 - **Error handling**: Validates inputs, handles missing parameters, provides detailed error messages
 - **Response format**: Maintains exact API compatibility with Python server responses
 
-### 🎯 Key Benefits  
+### 🎯 Key Benefits
 - **Performance**: Faster startup and lower memory usage than Python
 - **Reliability**: Rust's type system prevents runtime errors
 - **Concurrency**: Native async/await support throughout
