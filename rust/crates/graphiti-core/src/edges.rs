@@ -144,7 +144,7 @@ impl Edge for EpisodicEdge {
 
     async fn save(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
         use crate::database::traits::QueryParameter;
-        
+
         // Convert edge attributes to database parameters
         let mut properties = HashMap::new();
         properties.insert("uuid".to_string(), QueryParameter::String(self.base.uuid.clone()));
@@ -162,7 +162,7 @@ impl Edge for EpisodicEdge {
                 properties
             ).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
         }
-        
+
         Ok(())
     }
 
@@ -261,7 +261,7 @@ impl Edge for EntityEdge {
 
     async fn save(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
         use crate::database::traits::QueryParameter;
-        
+
         // Convert edge attributes to database parameters
         let mut properties = HashMap::new();
         properties.insert("uuid".to_string(), QueryParameter::String(self.base.uuid.clone()));
@@ -270,11 +270,11 @@ impl Edge for EntityEdge {
         properties.insert("name".to_string(), QueryParameter::String(self.name.clone()));
         properties.insert("fact".to_string(), QueryParameter::String(self.fact.clone()));
         properties.insert("valid_at".to_string(), QueryParameter::String(self.valid_at.to_rfc3339()));
-        
+
         // Convert episodes to JSON string
         let episodes_json = serde_json::to_string(&self.episodes).unwrap_or_default();
         properties.insert("episodes".to_string(), QueryParameter::String(episodes_json));
-        
+
         // Handle optional timestamps
         if let Some(expired_at) = self.expired_at {
             properties.insert("expired_at".to_string(), QueryParameter::String(expired_at.to_rfc3339()));
@@ -294,7 +294,7 @@ impl Edge for EntityEdge {
                 properties
             ).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
         }
-        
+
         Ok(())
     }
 
@@ -365,7 +365,7 @@ impl Edge for CommunityEdge {
 
     async fn save(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
         use crate::database::traits::QueryParameter;
-        
+
         // Convert edge attributes to database parameters
         let mut properties = HashMap::new();
         properties.insert("uuid".to_string(), QueryParameter::String(self.base.uuid.clone()));
@@ -383,7 +383,7 @@ impl Edge for CommunityEdge {
                 properties
             ).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
         }
-        
+
         Ok(())
     }
 

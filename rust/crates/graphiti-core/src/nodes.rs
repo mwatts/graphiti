@@ -191,25 +191,25 @@ impl Node for EpisodicNode {
 
     async fn save(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
         use crate::database::traits::QueryParameter;
-        
+
         // Convert node attributes to database parameters
         let mut properties = HashMap::new();
         properties.insert("uuid".to_string(), QueryParameter::String(self.base.uuid.clone()));
         properties.insert("name".to_string(), QueryParameter::String(self.base.name.clone()));
         properties.insert("group_id".to_string(), QueryParameter::String(self.base.group_id.clone()));
         properties.insert("created_at".to_string(), QueryParameter::String(self.base.created_at.to_rfc3339()));
-        
+
         // Convert EpisodeType to string
         let source_str = match self.source {
             EpisodeType::Message => "message",
-            EpisodeType::Json => "json", 
+            EpisodeType::Json => "json",
             EpisodeType::Text => "text",
         };
         properties.insert("source".to_string(), QueryParameter::String(source_str.to_string()));
         properties.insert("source_description".to_string(), QueryParameter::String(self.source_description.clone()));
         properties.insert("content".to_string(), QueryParameter::String(self.content.clone()));
         properties.insert("valid_at".to_string(), QueryParameter::String(self.valid_at.to_rfc3339()));
-        
+
         // Convert entity_edges to string representation
         let entity_edges_json = serde_json::to_string(&self.entity_edges).unwrap_or_default();
         properties.insert("entity_edges".to_string(), QueryParameter::String(entity_edges_json));
@@ -220,7 +220,7 @@ impl Node for EpisodicNode {
         } else {
             database.create_node(self.base.labels.clone(), properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
         }
-        
+
         Ok(())
     }
 
@@ -288,7 +288,7 @@ impl Node for EntityNode {
 
     async fn save(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
         use crate::database::traits::QueryParameter;
-        
+
         // Convert node attributes to database parameters
         let mut properties = HashMap::new();
         properties.insert("uuid".to_string(), QueryParameter::String(self.base.uuid.clone()));
@@ -296,7 +296,7 @@ impl Node for EntityNode {
         properties.insert("group_id".to_string(), QueryParameter::String(self.base.group_id.clone()));
         properties.insert("created_at".to_string(), QueryParameter::String(self.base.created_at.to_rfc3339()));
         properties.insert("summary".to_string(), QueryParameter::String(self.summary.clone()));
-        
+
         // Handle optional summary_embedding
         if let Some(ref embedding) = self.summary_embedding {
             let embedding_json = serde_json::to_string(embedding).unwrap_or_default();
@@ -309,7 +309,7 @@ impl Node for EntityNode {
         } else {
             database.create_node(self.base.labels.clone(), properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
         }
-        
+
         Ok(())
     }
 
@@ -376,7 +376,7 @@ impl Node for CommunityNode {
 
     async fn save(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
         use crate::database::traits::QueryParameter;
-        
+
         // Convert node attributes to database parameters
         let mut properties = HashMap::new();
         properties.insert("uuid".to_string(), QueryParameter::String(self.base.uuid.clone()));
@@ -384,7 +384,7 @@ impl Node for CommunityNode {
         properties.insert("group_id".to_string(), QueryParameter::String(self.base.group_id.clone()));
         properties.insert("created_at".to_string(), QueryParameter::String(self.base.created_at.to_rfc3339()));
         properties.insert("summary".to_string(), QueryParameter::String(self.summary.clone()));
-        
+
         // Handle optional summary_embedding
         if let Some(ref embedding) = self.summary_embedding {
             let embedding_json = serde_json::to_string(embedding).unwrap_or_default();
@@ -397,7 +397,7 @@ impl Node for CommunityNode {
         } else {
             database.create_node(self.base.labels.clone(), properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
         }
-        
+
         Ok(())
     }
 
