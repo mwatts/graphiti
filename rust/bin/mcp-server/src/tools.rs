@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use graphiti_core::{
-    nodes::EpisodeType,
+    nodes::{EpisodeType, Node},
+    edges::Edge,
     Graphiti,
 };
 use serde::Serialize;
 use serde_json::{json, Value};
-use tokio::sync::Mutex;
 use tracing::{error, info};
 use chrono::Utc;
 
@@ -69,7 +69,6 @@ pub struct StatusResponse {
 pub struct GraphitiTools {
     graphiti: Option<Arc<Graphiti>>,
     config: Arc<GraphitiConfig>,
-    episode_queues: Arc<Mutex<HashMap<String, Vec<Box<dyn Fn() + Send + Sync>>>>>,
 }
 
 impl GraphitiTools {
@@ -77,7 +76,6 @@ impl GraphitiTools {
         Self {
             graphiti: Some(Arc::new(graphiti)),
             config: Arc::new(config),
-            episode_queues: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -85,6 +83,7 @@ impl GraphitiTools {
         self.graphiti = Some(Arc::new(graphiti));
     }
 
+    #[allow(dead_code)]
     fn get_graphiti(&self) -> Result<&Arc<Graphiti>, String> {
         self.graphiti.as_ref().ok_or_else(|| {
             "Graphiti client not initialized".to_string()
@@ -141,43 +140,112 @@ impl GraphitiTools {
 
     /// Search for memory nodes
     pub async fn search_memory_nodes(&self, arguments: Value) -> Value {
-        // For now, return a placeholder since the search API isn't fully implemented
-        // This maintains API compatibility while we work on the core implementation
-        
+        let graphiti = match self.get_graphiti() {
+            Ok(g) => g,
+            Err(e) => return json!({"error": e}),
+        };
+
         let query = arguments.get("query").and_then(|v| v.as_str()).unwrap_or("");
         
+        if query.is_empty() {
+            return json!({"error": "Query parameter is required"});
+        }
+
         info!("Search nodes query: {}", query);
-        
-        // Return empty results for now - this maintains API compatibility
-        json!({
-            "message": "Search completed successfully (placeholder implementation)",
-            "nodes": []
-        })
+
+        match graphiti.search(query, None, None).await {
+            Ok(results) => {
+                let nodes: Vec<NodeResult> = results.nodes.into_iter().map(|search_result| {
+                    let node = &search_result.item;
+                    let mut attributes = HashMap::new();
+                    attributes.insert("score".to_string(), json!(search_result.score));
+                    
+                    NodeResult {
+                        uuid: node.uuid().to_string(),
+                        name: node.name().to_string(),
+                        summary: node.summary.clone(),
+                        labels: node.labels().to_vec(),
+                        group_id: node.group_id().to_string(),
+                        created_at: node.created_at().to_rfc3339(),
+                        attributes,
+                    }
+                }).collect();
+
+                json!({
+                    "message": format!("Found {} nodes", nodes.len()),
+                    "nodes": nodes
+                })
+            }
+            Err(e) => {
+                error!("Search error: {:?}", e);
+                json!({"error": format!("Search failed: {:?}", e)})
+            }
+        }
     }
 
     /// Search for memory facts  
     pub async fn search_memory_facts(&self, arguments: Value) -> Value {
-        // For now, return a placeholder since the search API isn't fully implemented
-        // This maintains API compatibility while we work on the core implementation
-        
+        let graphiti = match self.get_graphiti() {
+            Ok(g) => g,
+            Err(e) => return json!({"error": e}),
+        };
+
         let query = arguments.get("query").and_then(|v| v.as_str()).unwrap_or("");
         
+        if query.is_empty() {
+            return json!({"error": "Query parameter is required"});
+        }
+
         info!("Search facts query: {}", query);
-        
-        // Return empty results for now - this maintains API compatibility
-        json!({
-            "message": "Facts retrieved successfully (placeholder implementation)",
-            "facts": []
-        })
+
+        match graphiti.search(query, None, None).await {
+            Ok(results) => {
+                let facts: Vec<HashMap<String, Value>> = results.edges.into_iter().map(|search_result| {
+                    let edge = &search_result.item;
+                    let mut fact = HashMap::new();
+                    fact.insert("uuid".to_string(), json!(edge.uuid()));
+                    fact.insert("fact".to_string(), json!(edge.fact));
+                    fact.insert("source_node_uuid".to_string(), json!(edge.source_node_uuid()));
+                    fact.insert("target_node_uuid".to_string(), json!(edge.target_node_uuid()));
+                    fact.insert("group_id".to_string(), json!(edge.group_id()));
+                    fact.insert("created_at".to_string(), json!(edge.created_at().to_rfc3339()));
+                    fact.insert("score".to_string(), json!(search_result.score));
+                    fact
+                }).collect();
+
+                json!({
+                    "message": format!("Found {} facts", facts.len()),
+                    "facts": facts
+                })
+            }
+            Err(e) => {
+                error!("Search error: {:?}", e);
+                json!({"error": format!("Search failed: {:?}", e)})
+            }
+        }
     }
 
     /// Clear the graph
     pub async fn clear_graph(&self) -> Value {
-        // For now, return a success message since clear functionality isn't implemented yet
-        // This maintains API compatibility while we work on the core implementation
+        let graphiti = match self.get_graphiti() {
+            Ok(g) => g,
+            Err(e) => return json!({"error": e}),
+        };
         
-        info!("Clear graph requested (placeholder implementation)");
+        info!("Clearing graph for group_id: {}", self.config.group_id);
         
-        json!({"message": "Graph clear functionality not yet implemented in Rust version"})
+        // Use the client graph access to delete by group_id
+        let graph = &graphiti.clients().driver;
+        
+        match graphiti_core::nodes::BaseNode::delete_by_group_id(graph, &self.config.group_id).await {
+            Ok(_) => {
+                info!("Graph cleared successfully for group_id: {}", self.config.group_id);
+                json!({"message": format!("Graph cleared successfully for group_id: {}", self.config.group_id)})
+            }
+            Err(e) => {
+                error!("Error clearing graph: {:?}", e);
+                json!({"error": format!("Error clearing graph: {:?}", e)})
+            }
+        }
     }
 }
