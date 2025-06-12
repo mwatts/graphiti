@@ -16,16 +16,16 @@ limitations under the License.
 
 //! Maintenance operations module
 
-pub mod node_operations;
-pub mod edge_operations;
-pub mod temporal_operations;
-pub mod graph_data_operations;
 pub mod community_operations;
+pub mod edge_operations;
+pub mod graph_data_operations;
+pub mod node_operations;
+pub mod temporal_operations;
 pub mod utils;
 
-pub use node_operations::*;
-pub use edge_operations::*;
-pub use temporal_operations::*;
-pub use graph_data_operations::*;
 pub use community_operations::*;
+pub use edge_operations::*;
+pub use graph_data_operations::*;
+pub use node_operations::*;
+pub use temporal_operations::*;
 pub use utils::*;

@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+pub mod cached;
 pub mod client;
 pub mod openai;
-pub mod cached;
 
+pub use cached::CachedEmbedderClient;
 pub use client::{EmbedderClient, EmbedderConfig, EMBEDDING_DIM};
 pub use openai::OpenAiEmbedder;
-pub use cached::CachedEmbedderClient;

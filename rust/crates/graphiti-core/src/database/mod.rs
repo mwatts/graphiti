@@ -21,18 +21,20 @@ limitations under the License.
 
 use std::sync::Arc;
 
-pub mod traits;
-pub mod neo4j;
-pub mod kuzu;
 pub mod config;
+pub mod kuzu;
+pub mod neo4j;
+pub mod traits;
 pub mod types;
 
-pub use traits::{GraphDatabase, QueryResult, QueryParameter, NodeData, EdgeData, Transaction};
 pub use config::{DatabaseConfig, DatabaseType};
+pub use traits::{EdgeData, GraphDatabase, NodeData, QueryParameter, QueryResult, Transaction};
 pub use types::{DatabaseError, DatabaseResult};
 
 /// Factory function to create a database instance based on configuration
-pub async fn create_database(config: DatabaseConfig) -> DatabaseResult<Arc<dyn GraphDatabase + Send + Sync>> {
+pub async fn create_database(
+    config: DatabaseConfig,
+) -> DatabaseResult<Arc<dyn GraphDatabase + Send + Sync>> {
     match config.database_type {
         DatabaseType::Neo4j => {
             let db = neo4j::Neo4jDatabase::new(config).await?;

@@ -27,19 +27,19 @@ limitations under the License.
 
 //! Bulk processing utilities for nodes and edges
 
-use std::collections::HashMap;
-use chrono::{DateTime, Utc};
-use neo4rs::{Graph, Txn};
 use crate::{
-    types::GraphitiClients,
-    nodes::{EntityNode, EpisodicNode, EpisodeType},
     edges::{EntityEdge, EpisodicEdge},
     embedder::EmbedderClient,
-    llm_client::LlmClient,
-    search::{SearchFilters, get_relevant_nodes, get_relevant_edges},
-    helpers::semaphore_gather,
     errors::GraphitiError,
+    helpers::semaphore_gather,
+    llm_client::LlmClient,
+    nodes::{EntityNode, EpisodeType, EpisodicNode},
+    search::{get_relevant_edges, get_relevant_nodes, SearchFilters},
+    types::GraphitiClients,
 };
+use chrono::{DateTime, Utc};
+use neo4rs::{Graph, Txn};
+use std::collections::HashMap;
 
 /// Chunk size for batch processing
 const CHUNK_SIZE: usize = 10;
@@ -91,7 +91,8 @@ pub async fn add_nodes_and_edges_bulk(
         entity_nodes,
         entity_edges,
         embedder,
-    ).await?;
+    )
+    .await?;
 
     txn.commit().await?;
     Ok(())
@@ -188,7 +189,9 @@ pub async fn dedupe_nodes_bulk(
     let existing_futures: Vec<_> = node_chunks
         .iter()
         .map(|chunk| async move {
-            get_relevant_nodes(graph, chunk, &SearchFilters::default()).await.unwrap_or_default()
+            get_relevant_nodes(graph, chunk, &SearchFilters::default())
+                .await
+                .unwrap_or_default()
         })
         .collect();
 
@@ -237,7 +240,9 @@ pub async fn dedupe_edges_bulk(
     let relevant_futures: Vec<_> = edge_chunks
         .iter()
         .map(|chunk| async move {
-            get_relevant_edges(graph, chunk, &SearchFilters::default()).await.unwrap_or_default()
+            get_relevant_edges(graph, chunk, &SearchFilters::default())
+                .await
+                .unwrap_or_default()
         })
         .collect();
 
@@ -269,7 +274,10 @@ fn node_name_match(nodes: Vec<EntityNode>) -> (Vec<EntityNode>, HashMap<String, 
     for node in nodes {
         if let Some(existing_node) = name_map.get(&node.base.name) {
             // Found duplicate by name
-            uuid_map.insert(node.base.uuid.to_string(), existing_node.base.uuid.to_string());
+            uuid_map.insert(
+                node.base.uuid.to_string(),
+                existing_node.base.uuid.to_string(),
+            );
         } else {
             // New unique node
             name_map.insert(node.base.name.clone(), node.clone());
@@ -418,7 +426,9 @@ pub async fn extract_edge_dates_bulk(
     // Create episode UUID mapping
     let episode_uuid_map: HashMap<String, (EpisodicNode, Vec<EpisodicNode>)> = episode_pairs
         .into_iter()
-        .map(|(episode, previous_episodes)| (episode.base.uuid.to_string(), (episode, previous_episodes)))
+        .map(|(episode, previous_episodes)| {
+            (episode.base.uuid.to_string(), (episode, previous_episodes))
+        })
         .collect();
 
     // Extract dates for each edge (simplified for now)
@@ -467,9 +477,21 @@ mod tests {
     #[test]
     fn test_node_name_match() {
         let nodes = vec![
-            EntityNode::new("Alice".to_string(), "test-group".to_string(), "Summary for Alice".to_string()),
-            EntityNode::new("Bob".to_string(), "test-group".to_string(), "Summary for Bob".to_string()),
-            EntityNode::new("Alice".to_string(), "test-group".to_string(), "Summary for Alice duplicate".to_string()), // Duplicate
+            EntityNode::new(
+                "Alice".to_string(),
+                "test-group".to_string(),
+                "Summary for Alice".to_string(),
+            ),
+            EntityNode::new(
+                "Bob".to_string(),
+                "test-group".to_string(),
+                "Summary for Bob".to_string(),
+            ),
+            EntityNode::new(
+                "Alice".to_string(),
+                "test-group".to_string(),
+                "Summary for Alice duplicate".to_string(),
+            ), // Duplicate
         ];
 
         let (unique_nodes, uuid_map) = node_name_match(nodes);

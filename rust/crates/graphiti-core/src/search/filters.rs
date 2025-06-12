@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ComparisonOperator {
@@ -97,7 +97,10 @@ impl SearchFilters {
 
         if let Some(ref edge_types) = self.edge_types {
             filter_query.push_str("\nAND r.name in $edge_types");
-            filter_params.insert("edge_types".to_string(), serde_json::to_value(edge_types).unwrap());
+            filter_params.insert(
+                "edge_types".to_string(),
+                serde_json::to_value(edge_types).unwrap(),
+            );
         }
 
         if let Some(ref node_labels) = self.node_labels {
@@ -207,23 +210,21 @@ mod tests {
 
     #[test]
     fn test_search_filters_with_node_labels() {
-        let filters = SearchFilters::new()
-            .with_node_labels(vec!["Entity".to_string(), "Person".to_string()]);
+        let filters =
+            SearchFilters::new().with_node_labels(vec!["Entity".to_string(), "Person".to_string()]);
         assert_eq!(filters.node_labels.unwrap(), vec!["Entity", "Person"]);
     }
 
     #[test]
     fn test_node_search_filter_query() {
-        let filters = SearchFilters::new()
-            .with_node_labels(vec!["Entity".to_string()]);
+        let filters = SearchFilters::new().with_node_labels(vec!["Entity".to_string()]);
         let (query, _params) = filters.node_search_filter_query();
         assert_eq!(query, " AND n:Entity");
     }
 
     #[test]
     fn test_edge_search_filter_query() {
-        let filters = SearchFilters::new()
-            .with_edge_types(vec!["RELATES_TO".to_string()]);
+        let filters = SearchFilters::new().with_edge_types(vec!["RELATES_TO".to_string()]);
         let (query, params) = filters.edge_search_filter_query();
         assert!(query.contains("AND r.name in $edge_types"));
         assert!(params.contains_key("edge_types"));

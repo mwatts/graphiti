@@ -16,8 +16,8 @@ limitations under the License.
 
 //! Core prompt models and types
 
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// A message in a conversation with an LLM
 #[derive(Debug, Clone, Serialize, Deserialize)]

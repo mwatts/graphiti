@@ -22,9 +22,9 @@ limitations under the License.
 pub mod disk_cache;
 pub mod memory_cache;
 
-use std::time::Duration;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 use crate::errors::GraphitiResult;
 
@@ -45,7 +45,7 @@ impl Default for CacheConfig {
     fn default() -> Self {
         Self {
             default_ttl: Duration::from_secs(3600), // 1 hour
-            max_size: Some(1024 * 1024 * 100), // 100MB
+            max_size: Some(1024 * 1024 * 100),      // 100MB
             cache_dir: Some("./cache".to_string()),
             persistent: true,
         }

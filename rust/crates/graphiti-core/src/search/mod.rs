@@ -32,18 +32,16 @@ pub mod utils;
 mod tests;
 
 pub use config::{
-    SearchConfig, SearchResults, SearchResult,
-    EdgeSearchConfig, NodeSearchConfig, EpisodeSearchConfig, CommunitySearchConfig,
-    EdgeSearchMethod, NodeSearchMethod, EpisodeSearchMethod, CommunitySearchMethod,
-    EdgeReranker, NodeReranker, EpisodeReranker, CommunityReranker,
+    CommunityReranker, CommunitySearchConfig, CommunitySearchMethod, EdgeReranker,
+    EdgeSearchConfig, EdgeSearchMethod, EpisodeReranker, EpisodeSearchConfig, EpisodeSearchMethod,
+    NodeReranker, NodeSearchConfig, NodeSearchMethod, SearchConfig, SearchResult, SearchResults,
     DEFAULT_SEARCH_LIMIT,
 };
-pub use filters::{SearchFilters, DateFilter, ComparisonOperator};
+pub use filters::{ComparisonOperator, DateFilter, SearchFilters};
 pub use search::GraphitiSearch;
 pub use utils::{
-    lucene_sanitize, fulltext_query,
-    get_episodes_by_mentions, get_mentioned_nodes, get_communities_by_nodes,
-    get_relevant_nodes, get_relevant_edges,
-    edge_fulltext_search, edge_similarity_search, edge_bfs_search,
-    RELEVANT_SCHEMA_LIMIT, DEFAULT_MIN_SCORE, DEFAULT_MMR_LAMBDA, MAX_SEARCH_DEPTH, MAX_QUERY_LENGTH,
+    edge_bfs_search, edge_fulltext_search, edge_similarity_search, fulltext_query,
+    get_communities_by_nodes, get_episodes_by_mentions, get_mentioned_nodes, get_relevant_edges,
+    get_relevant_nodes, lucene_sanitize, DEFAULT_MIN_SCORE, DEFAULT_MMR_LAMBDA, MAX_QUERY_LENGTH,
+    MAX_SEARCH_DEPTH, RELEVANT_SCHEMA_LIMIT,
 };

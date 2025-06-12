@@ -16,19 +16,19 @@ limitations under the License.
 
 //! Prompt library implementation
 
-use std::collections::HashMap;
 use crate::prompts::{
-    models::{Message, PromptFunction},
-    extract_nodes::ExtractNodesPrompt,
-    extract_edges::ExtractEdgesPrompt,
-    dedupe_nodes::DedupeNodesPrompt,
     dedupe_edges::DedupeEdgesPrompt,
-    invalidate_edges::InvalidateEdgesPrompt,
-    extract_edge_dates::ExtractEdgeDatesPrompt,
-    summarize_nodes::SummarizeNodesPrompt,
+    dedupe_nodes::DedupeNodesPrompt,
     eval::EvalPrompt,
+    extract_edge_dates::ExtractEdgeDatesPrompt,
+    extract_edges::ExtractEdgesPrompt,
+    extract_nodes::ExtractNodesPrompt,
     helpers::DO_NOT_ESCAPE_UNICODE,
+    invalidate_edges::InvalidateEdgesPrompt,
+    models::{Message, PromptFunction},
+    summarize_nodes::SummarizeNodesPrompt,
 };
+use std::collections::HashMap;
 
 /// Main prompt library interface
 pub struct PromptLibrary {

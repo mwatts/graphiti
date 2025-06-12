@@ -42,14 +42,17 @@ async fn add_messages(
             message.content
         );
 
-        match service.add_episode(
-            message.name.unwrap_or_else(|| "Message".to_string()),
-            episode_body,
-            EpisodeType::Message,
-            message.source_description,
-            request.group_id.clone(),
-            Some(message.timestamp),
-        ).await {
+        match service
+            .add_episode(
+                message.name.unwrap_or_else(|| "Message".to_string()),
+                episode_body,
+                EpisodeType::Message,
+                message.source_description,
+                request.group_id.clone(),
+                Some(message.timestamp),
+            )
+            .await
+        {
             Ok(_) => {
                 // Episode added successfully
             }
@@ -73,12 +76,15 @@ async fn add_entity_node(
     Extension(service): Extension<Arc<GraphitiService>>,
     Json(request): Json<AddEntityNodeRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-    match service.save_entity_node(
-        request.uuid,
-        request.group_id,
-        request.name,
-        request.summary,
-    ).await {
+    match service
+        .save_entity_node(
+            request.uuid,
+            request.group_id,
+            request.name,
+            request.summary,
+        )
+        .await
+    {
         Ok(node) => {
             let node_json = serde_json::to_value(&node).unwrap_or_default();
             Ok((StatusCode::CREATED, Json(node_json)))

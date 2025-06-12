@@ -16,13 +16,13 @@ limitations under the License.
 
 //! Caching wrapper for embedder clients
 
-use async_trait::async_trait;
-use std::sync::Arc;
 use crate::{
-    cache::{Cache, generate_cache_key},
+    cache::{generate_cache_key, Cache},
     embedder::client::EmbedderClient,
     errors::GraphitiResult,
 };
+use async_trait::async_trait;
+use std::sync::Arc;
 
 /// Wrapper that adds caching to any EmbedderClient implementation
 pub struct CachedEmbedderClient {
@@ -79,10 +79,10 @@ impl EmbedderClient for CachedEmbedderClient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cache::{CacheConfig, memory_cache::MemoryCache};
-    use std::sync::Arc;
-    use mockall::predicate::*;
+    use crate::cache::{memory_cache::MemoryCache, CacheConfig};
     use mockall::mock;
+    use mockall::predicate::*;
+    use std::sync::Arc;
 
     mock! {
         TestEmbedder {}

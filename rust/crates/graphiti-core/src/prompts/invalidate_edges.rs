@@ -16,22 +16,25 @@ limitations under the License.
 
 //! Edge invalidation prompts
 
-use std::collections::HashMap;
 use crate::prompts::models::{Message, PromptFunction};
+use std::collections::HashMap;
 
 /// Identify edges that should be invalidated
 pub fn invalidate(context: &HashMap<String, serde_json::Value>) -> Vec<Message> {
     let sys_prompt = "You are an AI assistant that identifies edges that are no longer valid and should be invalidated.";
 
-    let edges = context.get("edges")
+    let edges = context
+        .get("edges")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
-    let new_content = context.get("new_content")
+    let new_content = context
+        .get("new_content")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let user_prompt = format!(r#"
+    let user_prompt = format!(
+        r#"
 <EXISTING EDGES>
 {edges}
 </EXISTING EDGES>
@@ -42,12 +45,10 @@ pub fn invalidate(context: &HashMap<String, serde_json::Value>) -> Vec<Message> 
 
 Given the existing edges and new content, identify any edges that are contradicted by the new content
 and should be invalidated (marked as no longer true).
-"#);
+"#
+    );
 
-    vec![
-        Message::system(sys_prompt),
-        Message::user(user_prompt),
-    ]
+    vec![Message::system(sys_prompt), Message::user(user_prompt)]
 }
 
 /// Available prompt versions for edge invalidation

@@ -16,9 +16,9 @@ limitations under the License.
 
 //! Node extraction prompts
 
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use crate::prompts::models::{Message, PromptFunction};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Extracted entity from text
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -58,23 +58,28 @@ pub fn extract_message(context: &HashMap<String, serde_json::Value>) -> Vec<Mess
     let sys_prompt = "You are an AI assistant that extracts entity nodes from conversational messages. \
         Your primary task is to extract and classify the speaker and other significant entities mentioned in the conversation.";
 
-    let previous_episodes = context.get("previous_episodes")
+    let previous_episodes = context
+        .get("previous_episodes")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
-    let episode_content = context.get("episode_content")
+    let episode_content = context
+        .get("episode_content")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let entity_types = context.get("entity_types")
+    let entity_types = context
+        .get("entity_types")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "{}".to_string());
 
-    let custom_prompt = context.get("custom_prompt")
+    let custom_prompt = context
+        .get("custom_prompt")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let user_prompt = format!(r#"
+    let user_prompt = format!(
+        r#"
 <PREVIOUS MESSAGES>
 {previous_episodes}
 </PREVIOUS MESSAGES>
@@ -110,12 +115,10 @@ You are given a conversation context and a CURRENT MESSAGE. Your task is to extr
    - Be **explicit and unambiguous** in naming entities (e.g., use full names when available).
 
 {custom_prompt}
-"#);
+"#
+    );
 
-    vec![
-        Message::system(sys_prompt),
-        Message::user(user_prompt),
-    ]
+    vec![Message::system(sys_prompt), Message::user(user_prompt)]
 }
 
 /// Extract entities from JSON content
@@ -123,23 +126,28 @@ pub fn extract_json(context: &HashMap<String, serde_json::Value>) -> Vec<Message
     let sys_prompt = "You are an AI assistant that extracts entity nodes from JSON. \
         Your primary task is to extract and classify relevant entities from JSON files";
 
-    let source_description = context.get("source_description")
+    let source_description = context
+        .get("source_description")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let episode_content = context.get("episode_content")
+    let episode_content = context
+        .get("episode_content")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "{}".to_string());
 
-    let entity_types = context.get("entity_types")
+    let entity_types = context
+        .get("entity_types")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "{}".to_string());
 
-    let custom_prompt = context.get("custom_prompt")
+    let custom_prompt = context
+        .get("custom_prompt")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let user_prompt = format!(r#"
+    let user_prompt = format!(
+        r#"
 <SOURCE DESCRIPTION>:
 {source_description}
 </SOURCE DESCRIPTION>
@@ -159,12 +167,10 @@ Indicate the classified entity type by providing its entity_type_id.
 Guidelines:
 1. Always try to extract an entities that the JSON represents. This will often be something like a "name" or "user field
 2. Do NOT extract any properties that contain dates
-"#);
+"#
+    );
 
-    vec![
-        Message::system(sys_prompt),
-        Message::user(user_prompt),
-    ]
+    vec![Message::system(sys_prompt), Message::user(user_prompt)]
 }
 
 /// Extract entities from plain text
@@ -172,19 +178,23 @@ pub fn extract_text(context: &HashMap<String, serde_json::Value>) -> Vec<Message
     let sys_prompt = "You are an AI assistant that extracts entity nodes from text. \
         Your primary task is to extract and classify the speaker and other significant entities mentioned in the provided text.";
 
-    let episode_content = context.get("episode_content")
+    let episode_content = context
+        .get("episode_content")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let entity_types = context.get("entity_types")
+    let entity_types = context
+        .get("entity_types")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "{}".to_string());
 
-    let custom_prompt = context.get("custom_prompt")
+    let custom_prompt = context
+        .get("custom_prompt")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let user_prompt = format!(r#"
+    let user_prompt = format!(
+        r#"
 <TEXT>
 {episode_content}
 </TEXT>
@@ -203,31 +213,33 @@ Guidelines:
 2. Avoid creating nodes for relationships or actions.
 3. Avoid creating nodes for temporal information like dates, times or years (these will be added to edges later).
 4. Be as explicit as possible in your node names, using full names and avoiding abbreviations.
-"#);
+"#
+    );
 
-    vec![
-        Message::system(sys_prompt),
-        Message::user(user_prompt),
-    ]
+    vec![Message::system(sys_prompt), Message::user(user_prompt)]
 }
 
 /// Reflexion prompt to identify missed entities
 pub fn reflexion(context: &HashMap<String, serde_json::Value>) -> Vec<Message> {
     let sys_prompt = "You are an AI assistant that determines which entities have not been extracted from the given context";
 
-    let previous_episodes = context.get("previous_episodes")
+    let previous_episodes = context
+        .get("previous_episodes")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
-    let episode_content = context.get("episode_content")
+    let episode_content = context
+        .get("episode_content")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let extracted_entities = context.get("extracted_entities")
+    let extracted_entities = context
+        .get("extracted_entities")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
-    let user_prompt = format!(r#"
+    let user_prompt = format!(
+        r#"
 <PREVIOUS MESSAGES>
 {previous_episodes}
 </PREVIOUS MESSAGES>
@@ -241,35 +253,38 @@ pub fn reflexion(context: &HashMap<String, serde_json::Value>) -> Vec<Message> {
 
 Given the above previous messages, current message, and list of extracted entities; determine if any entities haven't been
 extracted.
-"#);
+"#
+    );
 
-    vec![
-        Message::system(sys_prompt),
-        Message::user(user_prompt),
-    ]
+    vec![Message::system(sys_prompt), Message::user(user_prompt)]
 }
 
 /// Classify extracted entities
 pub fn classify_nodes(context: &HashMap<String, serde_json::Value>) -> Vec<Message> {
     let sys_prompt = "You are an AI assistant that classifies entity nodes given the context from which they were extracted";
 
-    let previous_episodes = context.get("previous_episodes")
+    let previous_episodes = context
+        .get("previous_episodes")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
-    let episode_content = context.get("episode_content")
+    let episode_content = context
+        .get("episode_content")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let extracted_entities = context.get("extracted_entities")
+    let extracted_entities = context
+        .get("extracted_entities")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
-    let entity_types = context.get("entity_types")
+    let entity_types = context
+        .get("entity_types")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "{}".to_string());
 
-    let user_prompt = format!(r#"
+    let user_prompt = format!(
+        r#"
     <PREVIOUS MESSAGES>
     {previous_episodes}
     </PREVIOUS MESSAGES>
@@ -291,29 +306,31 @@ pub fn classify_nodes(context: &HashMap<String, serde_json::Value>) -> Vec<Messa
     1. Each entity must have exactly one type
     2. Only use the provided ENTITY TYPES as types, do not use additional types to classify entities.
     3. If none of the provided entity types accurately classify an extracted node, the type should be set to None
-"#);
+"#
+    );
 
-    vec![
-        Message::system(sys_prompt),
-        Message::user(user_prompt),
-    ]
+    vec![Message::system(sys_prompt), Message::user(user_prompt)]
 }
 
 /// Extract attributes for entities
 pub fn extract_attributes(context: &HashMap<String, serde_json::Value>) -> Vec<Message> {
-    let previous_episodes = context.get("previous_episodes")
+    let previous_episodes = context
+        .get("previous_episodes")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
-    let episode_content = context.get("episode_content")
+    let episode_content = context
+        .get("episode_content")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "{}".to_string());
 
-    let node = context.get("node")
+    let node = context
+        .get("node")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "{}".to_string());
 
-    let user_content = format!(r#"
+    let user_content = format!(
+        r#"
 
         <MESSAGES>
         {previous_episodes}
@@ -332,10 +349,13 @@ pub fn extract_attributes(context: &HashMap<String, serde_json::Value>) -> Vec<M
         <ENTITY>
         {node}
         </ENTITY>
-        "#);
+        "#
+    );
 
     vec![
-        Message::system("You are a helpful assistant that extracts entity properties from the provided text."),
+        Message::system(
+            "You are a helpful assistant that extracts entity properties from the provided text.",
+        ),
         Message::user(user_content),
     ]
 }

@@ -16,25 +16,22 @@ limitations under the License.
 
 //! Main Graphiti orchestrator - equivalent to Python's graphiti.py
 
-use std::sync::Arc;
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 use crate::{
-    database::{GraphDatabase, DatabaseConfig, create_database},
-    types::GraphitiClients,
-    nodes::{EntityNode, EpisodicNode, BaseNode, EpisodeType},
-    edges::{EntityEdge, EpisodicEdge},
-    llm_client::{LlmClient, openai_client::OpenAiClient},
-    embedder::{EmbedderClient, OpenAiEmbedder},
-    cross_encoder::{CrossEncoderClient, OpenAIRerankerClient},
     cache::{Cache, CacheConfig},
-    search::{SearchConfig, SearchResults, SearchFilters, GraphitiSearch},
-    utils::{
-        bulk_utils::RawEpisode,
-        datetime_utils::utc_now,
-    },
+    cross_encoder::{CrossEncoderClient, OpenAIRerankerClient},
+    database::{create_database, DatabaseConfig, GraphDatabase},
+    edges::{EntityEdge, EpisodicEdge},
+    embedder::{EmbedderClient, OpenAiEmbedder},
     errors::GraphitiError,
+    llm_client::{openai_client::OpenAiClient, LlmClient},
+    nodes::{BaseNode, EntityNode, EpisodeType, EpisodicNode},
+    search::{GraphitiSearch, SearchConfig, SearchFilters, SearchResults},
+    types::GraphitiClients,
+    utils::{bulk_utils::RawEpisode, datetime_utils::utc_now},
 };
 
 /// Results from adding an episode
@@ -77,28 +74,43 @@ impl Graphiti {
         let database = create_database(config.database_config).await?;
 
         // Initialize cache if configured
-        let cache: Option<Arc<dyn Cache + Send + Sync>> = if let Some(cache_config) = config.cache_config {
-            Some(Arc::new(crate::cache::memory_cache::MemoryCache::new(cache_config)))
-        } else {
-            None
-        };
+        let cache: Option<Arc<dyn Cache + Send + Sync>> =
+            if let Some(cache_config) = config.cache_config {
+                Some(Arc::new(crate::cache::memory_cache::MemoryCache::new(
+                    cache_config,
+                )))
+            } else {
+                None
+            };
 
         // Initialize default clients
-        let llm_client: Arc<dyn LlmClient> = Arc::new(OpenAiClient::new(Default::default(), false)?);
+        let llm_client: Arc<dyn LlmClient> =
+            Arc::new(OpenAiClient::new(Default::default(), false)?);
         let embedder: Arc<dyn EmbedderClient> = Arc::new(OpenAiEmbedder::new(Default::default())?);
-        let cross_encoder: Arc<dyn CrossEncoderClient> = Arc::new(OpenAIRerankerClient::new(Default::default())?);
+        let cross_encoder: Arc<dyn CrossEncoderClient> =
+            Arc::new(OpenAIRerankerClient::new(Default::default())?);
 
         // Wrap with cache if available
         let cached_llm_client = if let Some(cache) = &cache {
             crate::llm_client::CachedLlmClient::new(llm_client, cache.clone())
         } else {
-            crate::llm_client::CachedLlmClient::new(llm_client, Arc::new(crate::cache::memory_cache::MemoryCache::new(CacheConfig::default())))
+            crate::llm_client::CachedLlmClient::new(
+                llm_client,
+                Arc::new(crate::cache::memory_cache::MemoryCache::new(
+                    CacheConfig::default(),
+                )),
+            )
         };
 
         let cached_embedder = if let Some(cache) = &cache {
             crate::embedder::CachedEmbedderClient::new(embedder, cache.clone())
         } else {
-            crate::embedder::CachedEmbedderClient::new(embedder, Arc::new(crate::cache::memory_cache::MemoryCache::new(CacheConfig::default())))
+            crate::embedder::CachedEmbedderClient::new(
+                embedder,
+                Arc::new(crate::cache::memory_cache::MemoryCache::new(
+                    CacheConfig::default(),
+                )),
+            )
         };
 
         let database_arc: Arc<dyn GraphDatabase + Send + Sync> = Arc::from(database);
@@ -108,7 +120,11 @@ impl Graphiti {
             llm_client: Arc::new(cached_llm_client),
             embedder: Arc::new(cached_embedder),
             cross_encoder,
-            cache: cache.unwrap_or_else(|| Arc::new(crate::cache::memory_cache::MemoryCache::new(CacheConfig::default()))),
+            cache: cache.unwrap_or_else(|| {
+                Arc::new(crate::cache::memory_cache::MemoryCache::new(
+                    CacheConfig::default(),
+                ))
+            }),
         };
 
         Ok(Self {
@@ -129,11 +145,14 @@ impl Graphiti {
         let database = create_database(config.database_config).await?;
 
         // Initialize cache if configured
-        let cache: Option<Arc<dyn Cache + Send + Sync>> = if let Some(cache_config) = config.cache_config {
-            Some(Arc::new(crate::cache::memory_cache::MemoryCache::new(cache_config)))
-        } else {
-            None
-        };
+        let cache: Option<Arc<dyn Cache + Send + Sync>> =
+            if let Some(cache_config) = config.cache_config {
+                Some(Arc::new(crate::cache::memory_cache::MemoryCache::new(
+                    cache_config,
+                )))
+            } else {
+                None
+            };
 
         let database_arc = database;
 
@@ -142,7 +161,11 @@ impl Graphiti {
             llm_client,
             embedder,
             cross_encoder,
-            cache: cache.unwrap_or_else(|| Arc::new(crate::cache::memory_cache::MemoryCache::new(CacheConfig::default()))),
+            cache: cache.unwrap_or_else(|| {
+                Arc::new(crate::cache::memory_cache::MemoryCache::new(
+                    CacheConfig::default(),
+                ))
+            }),
         };
 
         Ok(Self {
@@ -159,7 +182,10 @@ impl Graphiti {
     }
 
     /// Build database indices and constraints
-    pub async fn build_indices_and_constraints(&self, delete_existing: bool) -> Result<(), GraphitiError> {
+    pub async fn build_indices_and_constraints(
+        &self,
+        delete_existing: bool,
+    ) -> Result<(), GraphitiError> {
         // Stub implementation - would create database indices and constraints
         let _delete_existing = delete_existing; // Use parameter to avoid warning
 
@@ -185,35 +211,38 @@ impl Graphiti {
         let reference_time = reference_time.unwrap_or_else(utc_now);
 
         // Create the episodic node
-        let base_node = BaseNode::new(name, group_id.clone())
-            .with_created_at(reference_time);
+        let base_node = BaseNode::new(name, group_id.clone()).with_created_at(reference_time);
 
         let episode = EpisodicNode {
             base: base_node,
             source,
             source_description,
-            content: if self.store_raw_episode_content { content.clone() } else { String::new() },
+            content: if self.store_raw_episode_content {
+                content.clone()
+            } else {
+                String::new()
+            },
             valid_at: reference_time,
             entity_edges: Vec::new(),
         };
 
         // Get previous episodes for context (temporarily disabled)
         let _previous_episodes: Vec<EpisodicNode> = Vec::new(); // TODO: Implement using database abstraction
-        // retrieve_episodes(
-        //     &self.clients.database,
-        //     reference_time,
-        //     EPISODE_WINDOW_LEN,
-        //     &[group_id],
-        // ).await?;
+                                                                // retrieve_episodes(
+                                                                //     &self.clients.database,
+                                                                //     reference_time,
+                                                                //     EPISODE_WINDOW_LEN,
+                                                                //     &[group_id],
+                                                                // ).await?;
 
         // Extract nodes and edges (temporarily disabled)
         let nodes: Vec<EntityNode> = Vec::new(); // TODO: Implement using database abstraction
         let edges: Vec<EntityEdge> = Vec::new(); // TODO: Implement using database abstraction
         let _episodic_edges: Vec<EpisodicEdge> = Vec::new(); // TODO: Implement using database abstraction
-        // let (mut nodes, mut edges, episodic_edges) = extract_nodes_and_edges_bulk(
-        //     &self.clients,
-        //     vec![(episode.clone(), previous_episodes)],
-        // ).await?;
+                                                             // let (mut nodes, mut edges, episodic_edges) = extract_nodes_and_edges_bulk(
+                                                             //     &self.clients,
+                                                             //     vec![(episode.clone(), previous_episodes)],
+                                                             // ).await?;
 
         // Deduplicate nodes (temporarily disabled)
         // let (deduped_nodes, uuid_map) = dedupe_nodes_bulk(
@@ -273,7 +302,11 @@ impl Graphiti {
                     base: base_node,
                     source: raw.source,
                     source_description: raw.source_description,
-                    content: if self.store_raw_episode_content { raw.content } else { String::new() },
+                    content: if self.store_raw_episode_content {
+                        raw.content
+                    } else {
+                        String::new()
+                    },
                     valid_at: raw.reference_time,
                     entity_edges: Vec::new(),
                 }
@@ -282,20 +315,20 @@ impl Graphiti {
 
         // Get previous episodes for each episode (temporarily disabled)
         let _episode_tuples: Vec<(EpisodicNode, Vec<EpisodicNode>)> = Vec::new(); // TODO: Implement using database abstraction
-        // retrieve_previous_episodes_bulk(
-        //     &self.clients.database,
-        //     &episodes,
-        //     EPISODE_WINDOW_LEN,
-        // ).await?;
+                                                                                  // retrieve_previous_episodes_bulk(
+                                                                                  //     &self.clients.database,
+                                                                                  //     &episodes,
+                                                                                  //     EPISODE_WINDOW_LEN,
+                                                                                  // ).await?;
 
         // Extract nodes and edges in bulk (temporarily disabled)
         let nodes: Vec<EntityNode> = Vec::new(); // TODO: Implement using database abstraction
         let edges: Vec<EntityEdge> = Vec::new(); // TODO: Implement using database abstraction
         let _episodic_edges: Vec<EpisodicEdge> = Vec::new(); // TODO: Implement using database abstraction
-        // let (mut nodes, mut edges, episodic_edges) = extract_nodes_and_edges_bulk(
-        //     &self.clients,
-        //     episode_tuples.clone(),
-        // ).await?;
+                                                             // let (mut nodes, mut edges, episodic_edges) = extract_nodes_and_edges_bulk(
+                                                             //     &self.clients,
+                                                             //     episode_tuples.clone(),
+                                                             // ).await?;
 
         // Deduplicate nodes (temporarily disabled)
         // let (deduped_nodes, uuid_map) = dedupe_nodes_bulk(
@@ -355,12 +388,14 @@ impl Graphiti {
         let search = GraphitiSearch::new(self.clients.clone());
         let default_config = SearchConfig::default();
         let default_filters = SearchFilters::default();
-        search.search(
-            query,
-            config.as_ref().unwrap_or(&default_config),
-            filters.as_ref().unwrap_or(&default_filters),
-            None
-        ).await
+        search
+            .search(
+                query,
+                config.as_ref().unwrap_or(&default_config),
+                filters.as_ref().unwrap_or(&default_filters),
+                None,
+            )
+            .await
     }
 
     /// Get access to the clients for advanced operations
@@ -371,7 +406,11 @@ impl Graphiti {
     /// Get the underlying database driver for backward compatibility
     /// This is temporary until all utilities are migrated to use the database abstraction
     pub fn get_neo4j_driver(&self) -> Option<&neo4rs::Graph> {
-        if let Some(neo4j_db) = self.database.as_any().downcast_ref::<crate::database::neo4j::Neo4jDatabase>() {
+        if let Some(neo4j_db) = self
+            .database
+            .as_any()
+            .downcast_ref::<crate::database::neo4j::Neo4jDatabase>()
+        {
             Some(neo4j_db.get_graph())
         } else {
             None
@@ -388,7 +427,10 @@ mod tests {
         let config = GraphitiConfig::default();
         assert_eq!(config.database_config.uri, "bolt://localhost:7687");
         assert_eq!(config.database_config.username, Some("neo4j".to_string()));
-        assert_eq!(config.database_config.password, Some("password".to_string()));
+        assert_eq!(
+            config.database_config.password,
+            Some("password".to_string())
+        );
         assert!(config.store_raw_episode_content);
     }
 

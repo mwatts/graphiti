@@ -16,15 +16,15 @@ limitations under the License.
 
 //! Caching wrapper for LLM clients
 
-use async_trait::async_trait;
-use std::sync::Arc;
-use std::collections::HashMap;
-use serde_json::Value;
 use crate::{
-    cache::{Cache, generate_cache_key},
-    llm_client::{LlmClient, models::Message, config::ModelSize},
+    cache::{generate_cache_key, Cache},
     errors::LlmResult,
+    llm_client::{config::ModelSize, models::Message, LlmClient},
 };
+use async_trait::async_trait;
+use serde_json::Value;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Wrapper that adds caching to any LlmClient implementation
 pub struct CachedLlmClient {
@@ -50,13 +50,18 @@ impl CachedLlmClient {
         let max_tokens_str = max_tokens.map(|t| t.to_string()).unwrap_or_default();
         let model_size_str = format!("{:?}", model_size);
 
-        let cache_key_str = format!("llm_{}_{}_{}_{}", messages_str, response_model_str, max_tokens_str, model_size_str);
+        let cache_key_str = format!(
+            "llm_{}_{}_{}_{}",
+            messages_str, response_model_str, max_tokens_str, model_size_str
+        );
         generate_cache_key(&[&cache_key_str])
     }
 
     fn generate_chat_cache_key(&self, messages: &[Message], json_params: Option<&Value>) -> String {
         let messages_str = serde_json::to_string(messages).unwrap_or_default();
-        let params_str = json_params.map(|p| serde_json::to_string(p).unwrap_or_default()).unwrap_or_default();
+        let params_str = json_params
+            .map(|p| serde_json::to_string(p).unwrap_or_default())
+            .unwrap_or_default();
 
         let cache_key_str = format!("chat_{}_{}", messages_str, params_str);
         generate_cache_key(&[&cache_key_str])
@@ -72,17 +77,23 @@ impl LlmClient for CachedLlmClient {
         max_tokens: Option<u32>,
         model_size: ModelSize,
     ) -> LlmResult<HashMap<String, Value>> {
-        let cache_key = self.generate_response_cache_key(messages, response_model, max_tokens, model_size);
+        let cache_key =
+            self.generate_response_cache_key(messages, response_model, max_tokens, model_size);
 
         // Try to get from cache first
         if let Ok(Some(cached_bytes)) = self.cache.get(&cache_key).await {
-            if let Ok(cached_response) = serde_json::from_slice::<HashMap<String, Value>>(&cached_bytes) {
+            if let Ok(cached_response) =
+                serde_json::from_slice::<HashMap<String, Value>>(&cached_bytes)
+            {
                 return Ok(cached_response);
             }
         }
 
         // Not in cache, make the request
-        let response = self.inner.generate_response(messages, response_model, max_tokens, model_size).await?;
+        let response = self
+            .inner
+            .generate_response(messages, response_model, max_tokens, model_size)
+            .await?;
 
         // Cache the result
         if let Ok(serialized) = serde_json::to_vec(&response) {

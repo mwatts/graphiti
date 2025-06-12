@@ -16,13 +16,13 @@ limitations under the License.
 
 //! Database abstraction traits
 
+use async_trait::async_trait;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Debug;
-use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
 
-use super::types::{DatabaseResult, DatabaseError};
+use super::types::{DatabaseError, DatabaseResult};
 
 /// Represents a query parameter value
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -65,7 +65,11 @@ pub struct QueryResult {
 #[async_trait]
 pub trait Transaction: Send + Sync {
     /// Execute a query within the transaction
-    async fn execute(&mut self, query: &str, parameters: HashMap<String, QueryParameter>) -> DatabaseResult<QueryResult>;
+    async fn execute(
+        &mut self,
+        query: &str,
+        parameters: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<QueryResult>;
 
     /// Commit the transaction
     async fn commit(self: Box<Self>) -> DatabaseResult<()>;
@@ -78,7 +82,11 @@ pub trait Transaction: Send + Sync {
 #[async_trait]
 pub trait GraphDatabase: Send + Sync + Debug {
     /// Execute a query and return results
-    async fn execute(&self, query: &str, parameters: HashMap<String, QueryParameter>) -> DatabaseResult<QueryResult>;
+    async fn execute(
+        &self,
+        query: &str,
+        parameters: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<QueryResult>;
 
     /// Begin a transaction
     async fn begin_transaction(&self) -> DatabaseResult<Box<dyn Transaction>>;
@@ -94,18 +102,45 @@ pub trait GraphDatabase: Send + Sync + Debug {
     fn as_any(&self) -> &dyn std::any::Any;
 
     // Node operations
-    async fn create_node(&self, labels: Vec<String>, properties: HashMap<String, QueryParameter>) -> DatabaseResult<String>;
+    async fn create_node(
+        &self,
+        labels: Vec<String>,
+        properties: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<String>;
     async fn get_node(&self, id: &str) -> DatabaseResult<Option<NodeData>>;
-    async fn update_node(&self, id: &str, properties: HashMap<String, QueryParameter>) -> DatabaseResult<()>;
+    async fn update_node(
+        &self,
+        id: &str,
+        properties: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<()>;
     async fn delete_node(&self, id: &str) -> DatabaseResult<()>;
-    async fn find_nodes(&self, label: Option<&str>, properties: HashMap<String, QueryParameter>) -> DatabaseResult<Vec<NodeData>>;
+    async fn find_nodes(
+        &self,
+        label: Option<&str>,
+        properties: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<Vec<NodeData>>;
 
     // Edge operations
-    async fn create_edge(&self, source_id: &str, target_id: &str, edge_type: &str, properties: HashMap<String, QueryParameter>) -> DatabaseResult<String>;
+    async fn create_edge(
+        &self,
+        source_id: &str,
+        target_id: &str,
+        edge_type: &str,
+        properties: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<String>;
     async fn get_edge(&self, id: &str) -> DatabaseResult<Option<EdgeData>>;
-    async fn update_edge(&self, id: &str, properties: HashMap<String, QueryParameter>) -> DatabaseResult<()>;
+    async fn update_edge(
+        &self,
+        id: &str,
+        properties: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<()>;
     async fn delete_edge(&self, id: &str) -> DatabaseResult<()>;
-    async fn find_edges(&self, source_id: Option<&str>, target_id: Option<&str>, edge_type: Option<&str>) -> DatabaseResult<Vec<EdgeData>>;
+    async fn find_edges(
+        &self,
+        source_id: Option<&str>,
+        target_id: Option<&str>,
+        edge_type: Option<&str>,
+    ) -> DatabaseResult<Vec<EdgeData>>;
 
     // Graph operations
     async fn clear_database(&self) -> DatabaseResult<()>;
@@ -113,10 +148,24 @@ pub trait GraphDatabase: Send + Sync + Debug {
 
     // Index and constraint management
     async fn create_index(&self, label: &str, property: &str) -> DatabaseResult<()>;
-    async fn create_constraint(&self, label: &str, property: &str, constraint_type: &str) -> DatabaseResult<()>;
+    async fn create_constraint(
+        &self,
+        label: &str,
+        property: &str,
+        constraint_type: &str,
+    ) -> DatabaseResult<()>;
     async fn build_indices_and_constraints(&self) -> DatabaseResult<()>;
 
     // Search operations
-    async fn fulltext_search(&self, query: &str, labels: Vec<String>) -> DatabaseResult<Vec<NodeData>>;
-    async fn vector_search(&self, embedding: Vec<f64>, label: &str, top_k: usize) -> DatabaseResult<Vec<(NodeData, f64)>>;
+    async fn fulltext_search(
+        &self,
+        query: &str,
+        labels: Vec<String>,
+    ) -> DatabaseResult<Vec<NodeData>>;
+    async fn vector_search(
+        &self,
+        embedding: Vec<f64>,
+        label: &str,
+        top_k: usize,
+    ) -> DatabaseResult<Vec<(NodeData, f64)>>;
 }

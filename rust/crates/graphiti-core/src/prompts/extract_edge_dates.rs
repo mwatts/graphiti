@@ -16,22 +16,25 @@ limitations under the License.
 
 //! Edge date extraction prompts
 
-use std::collections::HashMap;
 use crate::prompts::models::{Message, PromptFunction};
+use std::collections::HashMap;
 
 /// Extract dates from edge content
 pub fn extract_dates(context: &HashMap<String, serde_json::Value>) -> Vec<Message> {
     let sys_prompt = "You are an AI assistant that extracts temporal information from edge facts.";
 
-    let edges = context.get("edges")
+    let edges = context
+        .get("edges")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
-    let reference_time = context.get("reference_time")
+    let reference_time = context
+        .get("reference_time")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let user_prompt = format!(r#"
+    let user_prompt = format!(
+        r#"
 <EDGES>
 {edges}
 </EDGES>
@@ -42,12 +45,10 @@ pub fn extract_dates(context: &HashMap<String, serde_json::Value>) -> Vec<Messag
 
 Given the above edges and reference time, extract valid_at and invalid_at dates for each edge
 based on temporal information in the edge facts. Use ISO 8601 format.
-"#);
+"#
+    );
 
-    vec![
-        Message::system(sys_prompt),
-        Message::user(user_prompt),
-    ]
+    vec![Message::system(sys_prompt), Message::user(user_prompt)]
 }
 
 /// Available prompt versions for edge date extraction

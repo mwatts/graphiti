@@ -16,12 +16,12 @@ limitations under the License.
 
 //! Utility modules for Graphiti
 
-pub mod datetime_utils;
 pub mod bulk_utils;
+pub mod datetime_utils;
 pub mod maintenance;
 pub mod ontology_utils;
 
-pub use datetime_utils::*;
 pub use bulk_utils::*;
+pub use datetime_utils::*;
 pub use maintenance::*;
 pub use ontology_utils::*;

@@ -16,30 +16,31 @@ limitations under the License.
 
 //! Node deduplication prompts
 
-use std::collections::HashMap;
 use crate::prompts::models::{Message, PromptFunction};
+use std::collections::HashMap;
 
 /// Deduplicate similar nodes
 pub fn dedupe(context: &HashMap<String, serde_json::Value>) -> Vec<Message> {
-    let sys_prompt = "You are an AI assistant that identifies duplicate entities that should be merged.";
+    let sys_prompt =
+        "You are an AI assistant that identifies duplicate entities that should be merged.";
 
-    let nodes = context.get("nodes")
+    let nodes = context
+        .get("nodes")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
-    let user_prompt = format!(r#"
+    let user_prompt = format!(
+        r#"
 <NODES>
 {nodes}
 </NODES>
 
 Given the above nodes, identify any that represent the same entity and should be merged.
 Consider variations in naming, abbreviations, and different ways of referring to the same entity.
-"#);
+"#
+    );
 
-    vec![
-        Message::system(sys_prompt),
-        Message::user(user_prompt),
-    ]
+    vec![Message::system(sys_prompt), Message::user(user_prompt)]
 }
 
 /// Available prompt versions for node deduplication

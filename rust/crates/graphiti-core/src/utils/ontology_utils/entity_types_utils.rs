@@ -16,9 +16,9 @@ limitations under the License.
 
 //! Entity type validation utilities
 
-use std::collections::{HashMap, HashSet};
-use serde::{Deserialize, Serialize};
 use crate::errors::GraphitiError;
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 
 /// Entity type definition for validation
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -86,8 +86,12 @@ mod tests {
             name: "Person".to_string(),
             fields: HashMap::new(),
         };
-        entity_type.fields.insert("age".to_string(), "u32".to_string());
-        entity_type.fields.insert("occupation".to_string(), "String".to_string());
+        entity_type
+            .fields
+            .insert("age".to_string(), "u32".to_string());
+        entity_type
+            .fields
+            .insert("occupation".to_string(), "String".to_string());
 
         entity_types.insert("Person".to_string(), entity_type);
 
@@ -102,14 +106,20 @@ mod tests {
             fields: HashMap::new(),
         };
         // This should conflict with EntityNode's uuid field
-        entity_type.fields.insert("uuid".to_string(), "String".to_string());
+        entity_type
+            .fields
+            .insert("uuid".to_string(), "String".to_string());
 
         entity_types.insert("Person".to_string(), entity_type);
 
         let result = validate_entity_types(Some(&entity_types));
         assert!(result.is_err());
 
-        if let Err(GraphitiError::EntityTypeValidation { entity_type, field_name }) = result {
+        if let Err(GraphitiError::EntityTypeValidation {
+            entity_type,
+            field_name,
+        }) = result
+        {
             assert_eq!(entity_type, "Person");
             assert_eq!(field_name, "uuid");
         } else {

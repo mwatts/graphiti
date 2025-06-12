@@ -16,11 +16,8 @@ limitations under the License.
 
 //! Community operations for graph clustering and analysis
 
+use crate::{database::GraphDatabase, errors::GraphitiError};
 use uuid::Uuid;
-use crate::{
-    errors::GraphitiError,
-    database::GraphDatabase,
-};
 
 /// Community detection result
 #[derive(Debug, Clone)]

@@ -16,22 +16,26 @@ limitations under the License.
 
 //! Evaluation prompts
 
-use std::collections::HashMap;
 use crate::prompts::models::{Message, PromptFunction};
+use std::collections::HashMap;
 
 /// Evaluate extraction quality
 pub fn evaluate(context: &HashMap<String, serde_json::Value>) -> Vec<Message> {
-    let sys_prompt = "You are an AI assistant that evaluates the quality of entity and relationship extraction.";
+    let sys_prompt =
+        "You are an AI assistant that evaluates the quality of entity and relationship extraction.";
 
-    let extracted_content = context.get("extracted_content")
+    let extracted_content = context
+        .get("extracted_content")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "{}".to_string());
 
-    let original_content = context.get("original_content")
+    let original_content = context
+        .get("original_content")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let user_prompt = format!(r#"
+    let user_prompt = format!(
+        r#"
 <ORIGINAL CONTENT>
 {original_content}
 </ORIGINAL CONTENT>
@@ -42,12 +46,10 @@ pub fn evaluate(context: &HashMap<String, serde_json::Value>) -> Vec<Message> {
 
 Evaluate the quality of the extraction by comparing the original content with what was extracted.
 Assess completeness, accuracy, and relevance of the extracted entities and relationships.
-"#);
+"#
+    );
 
-    vec![
-        Message::system(sys_prompt),
-        Message::user(user_prompt),
-    ]
+    vec![Message::system(sys_prompt), Message::user(user_prompt)]
 }
 
 /// Available prompt versions for evaluation

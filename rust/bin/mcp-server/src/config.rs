@@ -87,16 +87,16 @@ impl Default for LlmConfig {
 impl LlmConfig {
     /// Create LLM configuration from environment variables
     pub fn from_env() -> Self {
-        let model = env::var("MODEL_NAME")
-            .unwrap_or_else(|_| "gpt-4o-mini".to_string());
+        let model = env::var("MODEL_NAME").unwrap_or_else(|_| "gpt-4o-mini".to_string());
 
-        let small_model = env::var("SMALL_MODEL_NAME")
-            .unwrap_or_else(|_| "gpt-4o-mini".to_string());
+        let small_model =
+            env::var("SMALL_MODEL_NAME").unwrap_or_else(|_| "gpt-4o-mini".to_string());
 
         let azure_endpoint = env::var("AZURE_OPENAI_ENDPOINT").ok();
         let azure_use_managed_identity = env::var("AZURE_OPENAI_USE_MANAGED_IDENTITY")
             .unwrap_or_else(|_| "false".to_string())
-            .to_lowercase() == "true";
+            .to_lowercase()
+            == "true";
 
         Self {
             api_key: env::var("OPENAI_API_KEY").ok(),
@@ -175,7 +175,8 @@ impl EmbedderConfig {
             azure_openai_api_version: env::var("AZURE_OPENAI_API_VERSION").ok(),
             azure_openai_use_managed_identity: env::var("AZURE_OPENAI_USE_MANAGED_IDENTITY")
                 .unwrap_or_else(|_| "false".to_string())
-                .to_lowercase() == "true",
+                .to_lowercase()
+                == "true",
         }
     }
 }
@@ -203,10 +204,8 @@ impl Default for Neo4jConfig {
 impl Neo4jConfig {
     pub fn from_env() -> anyhow::Result<Self> {
         Ok(Self {
-            uri: env::var("NEO4J_URI")
-                .unwrap_or_else(|_| "bolt://localhost:7687".to_string()),
-            user: env::var("NEO4J_USER")
-                .unwrap_or_else(|_| "neo4j".to_string()),
+            uri: env::var("NEO4J_URI").unwrap_or_else(|_| "bolt://localhost:7687".to_string()),
+            user: env::var("NEO4J_USER").unwrap_or_else(|_| "neo4j".to_string()),
             password: env::var("NEO4J_PASSWORD")
                 .map_err(|_| anyhow::anyhow!("NEO4J_PASSWORD environment variable is required"))?,
             database: env::var("NEO4J_DATABASE").ok(),
@@ -229,7 +228,10 @@ pub struct GraphitiConfig {
 impl GraphitiConfig {
     /// Create configuration from CLI arguments and environment
     pub fn from_cli_and_env(mut args: Args) -> anyhow::Result<Self> {
-        let group_id = args.group_id.take().unwrap_or_else(|| Uuid::new_v4().to_string());
+        let group_id = args
+            .group_id
+            .take()
+            .unwrap_or_else(|| Uuid::new_v4().to_string());
         let transport = args.transport;
         let use_custom_entities = args.use_custom_entities;
         let destroy_graph = args.destroy_graph;

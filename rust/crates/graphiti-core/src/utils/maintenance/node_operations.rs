@@ -16,13 +16,13 @@ limitations under the License.
 
 //! Node maintenance operations
 
-use std::collections::HashMap;
 use crate::{
-    types::GraphitiClients,
-    nodes::{EntityNode, EpisodicNode},
-    llm_client::LlmClient,
     errors::GraphitiError,
+    llm_client::LlmClient,
+    nodes::{EntityNode, EpisodicNode},
+    types::GraphitiClients,
 };
+use std::collections::HashMap;
 
 /// Extract nodes from an episode and its context
 pub async fn extract_nodes(

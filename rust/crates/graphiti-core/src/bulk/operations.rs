@@ -15,9 +15,9 @@ limitations under the License.
 */
 
 use crate::{
+    edges::{Edge, EntityEdge},
     errors::GraphitiError,
     nodes::{EntityNode, Node},
-    edges::{EntityEdge, Edge},
     types::GraphitiClients,
 };
 use std::collections::HashMap;
@@ -118,7 +118,10 @@ impl BulkOperations {
     }
 
     /// Bulk update node properties
-    pub async fn update_nodes(&self, updates: HashMap<String, HashMap<String, serde_json::Value>>) -> Result<(), GraphitiError> {
+    pub async fn update_nodes(
+        &self,
+        updates: HashMap<String, HashMap<String, serde_json::Value>>,
+    ) -> Result<(), GraphitiError> {
         if updates.is_empty() {
             return Ok(());
         }
@@ -133,7 +136,10 @@ impl BulkOperations {
     }
 
     /// Update a single batch of nodes
-    async fn update_nodes_batch(&self, updates: &[(String, HashMap<String, serde_json::Value>)]) -> Result<(), GraphitiError> {
+    async fn update_nodes_batch(
+        &self,
+        updates: &[(String, HashMap<String, serde_json::Value>)],
+    ) -> Result<(), GraphitiError> {
         // TODO: Implement optimized Cypher query for batch node updates
 
         let database = &self.clients.database;

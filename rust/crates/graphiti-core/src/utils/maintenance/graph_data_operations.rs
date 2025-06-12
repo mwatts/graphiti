@@ -16,12 +16,8 @@ limitations under the License.
 
 //! Graph data operations for maintenance
 
+use crate::{database::GraphDatabase, errors::GraphitiError, nodes::EpisodicNode};
 use chrono::{DateTime, Utc};
-use crate::{
-    nodes::EpisodicNode,
-    errors::GraphitiError,
-    database::GraphDatabase,
-};
 
 /// Episode window length for retrieving context
 pub const EPISODE_WINDOW_LEN: usize = 10;
@@ -50,7 +46,8 @@ pub async fn get_episode_context(
         episode.valid_at,
         window_size,
         &[episode.base.group_id.clone()],
-    ).await
+    )
+    .await
 }
 
 /// Clean up expired episodes

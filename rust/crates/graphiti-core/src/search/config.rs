@@ -16,7 +16,10 @@ limitations under the License.
 
 use serde::{Deserialize, Serialize};
 
-use crate::{edges::EntityEdge, nodes::{CommunityNode, EntityNode, EpisodicNode}};
+use crate::{
+    edges::EntityEdge,
+    nodes::{CommunityNode, EntityNode, EpisodicNode},
+};
 
 pub const DEFAULT_SEARCH_LIMIT: usize = 10;
 pub const DEFAULT_MIN_SCORE: f64 = 0.0;
@@ -205,7 +208,10 @@ impl SearchResults {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.nodes.is_empty() && self.edges.is_empty() && self.episodes.is_empty() && self.communities.is_empty()
+        self.nodes.is_empty()
+            && self.edges.is_empty()
+            && self.episodes.is_empty()
+            && self.communities.is_empty()
     }
 }
 

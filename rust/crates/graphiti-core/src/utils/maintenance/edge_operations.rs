@@ -16,14 +16,14 @@ limitations under the License.
 
 //! Edge maintenance operations
 
-use chrono::{DateTime, Utc};
 use crate::{
-    types::GraphitiClients,
-    nodes::{EntityNode, EpisodicNode},
     edges::{EntityEdge, EpisodicEdge},
-    llm_client::LlmClient,
     errors::GraphitiError,
+    llm_client::LlmClient,
+    nodes::{EntityNode, EpisodicNode},
+    types::GraphitiClients,
 };
+use chrono::{DateTime, Utc};
 
 /// Extract edges from an episode and its context
 pub async fn extract_edges(

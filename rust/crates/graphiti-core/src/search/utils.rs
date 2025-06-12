@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use uuid::Uuid;
 use crate::{
-    errors::GraphitiError,
     edges::EntityEdge,
-    nodes::{EntityNode, EpisodicNode, CommunityNode},
+    errors::GraphitiError,
+    nodes::{CommunityNode, EntityNode, EpisodicNode},
     search::{SearchFilters, SearchResult},
     types::GraphitiClients,
 };
+use uuid::Uuid;
 
 pub const RELEVANT_SCHEMA_LIMIT: usize = 10;
 pub const DEFAULT_MIN_SCORE: f64 = 0.6;
@@ -30,7 +30,9 @@ pub const MAX_SEARCH_DEPTH: i32 = 3;
 pub const MAX_QUERY_LENGTH: usize = 32;
 
 /// Convert a serde_json::Value to a database parameter (placeholder function)
-fn convert_json_to_query_param(_value: serde_json::Value) -> Result<serde_json::Value, GraphitiError> {
+fn convert_json_to_query_param(
+    _value: serde_json::Value,
+) -> Result<serde_json::Value, GraphitiError> {
     // TODO: Implement proper conversion when search utils are updated to use database abstraction
     Ok(serde_json::Value::Null)
 }
@@ -42,9 +44,8 @@ pub fn lucene_sanitize(query: &str) -> String {
         .filter_map(|c| {
             match c {
                 // Escape special Lucene characters
-                '+' | '-' | '&' | '|' | '!' | '(' | ')' | '{' | '}' | '[' | ']' | '^' | '"' | '~' | '*' | '?' | ':' | '\\' => {
-                    Some(format!("\\{}", c))
-                }
+                '+' | '-' | '&' | '|' | '!' | '(' | ')' | '{' | '}' | '[' | ']' | '^' | '"'
+                | '~' | '*' | '?' | ':' | '\\' => Some(format!("\\{}", c)),
                 // Keep alphanumeric and space
                 c if c.is_alphanumeric() || c.is_whitespace() => Some(c.to_string()),
                 // Remove other characters
@@ -73,7 +74,9 @@ pub fn fulltext_query(query: &str, group_ids: Option<&[String]>) -> String {
     let lucene_query = lucene_sanitize(query);
 
     // If the lucene query is too long, return empty query
-    if lucene_query.split_whitespace().count() + group_ids.map_or(0, |g| g.len()) >= MAX_QUERY_LENGTH {
+    if lucene_query.split_whitespace().count() + group_ids.map_or(0, |g| g.len())
+        >= MAX_QUERY_LENGTH
+    {
         return String::new();
     }
 
@@ -97,12 +100,11 @@ pub async fn get_episodes_by_mentions(
     episode_uuids.truncate(limit);
 
     // Convert string UUIDs to Uuid objects for validation
-    let _uuids: Result<Vec<Uuid>, _> = episode_uuids
-        .iter()
-        .map(|s| s.parse::<Uuid>())
-        .collect();
+    let _uuids: Result<Vec<Uuid>, _> = episode_uuids.iter().map(|s| s.parse::<Uuid>()).collect();
 
-    let _uuids = _uuids.map_err(|e| GraphitiError::Validation { message: e.to_string() })?;
+    let _uuids = _uuids.map_err(|e| GraphitiError::Validation {
+        message: e.to_string(),
+    })?;
 
     // Build Cypher query to get episodes by UUIDs
     if episode_uuids.is_empty() {
@@ -115,8 +117,7 @@ pub async fn get_episodes_by_mentions(
     let _database = &clients.database;
     let mut results: Vec<EpisodicNode> = Vec::new();
 
-    let cypher_query = neo4rs::query(cypher)
-        .param("uuids", episode_uuids);
+    let cypher_query = neo4rs::query(cypher).param("uuids", episode_uuids);
 
     // TODO: Implement using database abstraction
     // let mut result = graph.execute(cypher_query).await?;
@@ -179,8 +180,7 @@ pub async fn get_mentioned_nodes(
     let _database = &clients.database;
     let mut results = Vec::new();
 
-    let _cypher_query = neo4rs::query(cypher)
-        .param("uuids", uuid_list);
+    let _cypher_query = neo4rs::query(cypher).param("uuids", uuid_list);
 
     // For now, return empty results until database abstraction is fully implemented
     return Ok(results);
@@ -302,9 +302,16 @@ pub async fn node_similarity_search(
     // Add the embedding vector parameter
     let embedding_json: Vec<serde_json::Value> = query_vector
         .iter()
-        .map(|&x| serde_json::Value::Number(serde_json::Number::from_f64(x as f64).unwrap_or(serde_json::Number::from(0))))
+        .map(|&x| {
+            serde_json::Value::Number(
+                serde_json::Number::from_f64(x as f64).unwrap_or(serde_json::Number::from(0)),
+            )
+        })
         .collect();
-    params.insert("embedding_vector".to_string(), serde_json::Value::Array(embedding_json));
+    params.insert(
+        "embedding_vector".to_string(),
+        serde_json::Value::Array(embedding_json),
+    );
 
     // Execute the Cypher query against Neo4j
     // TODO: Implement proper Neo4j vector similarity search
@@ -445,14 +452,20 @@ pub fn build_node_vector_query(
     min_score: f64,
 ) -> (String, std::collections::HashMap<String, serde_json::Value>) {
     let mut query = String::from(
-        "CALL db.index.vector.queryNodes('entity_node_embeddings', $k, $embedding_vector)"
+        "CALL db.index.vector.queryNodes('entity_node_embeddings', $k, $embedding_vector)",
     );
 
     let mut params = std::collections::HashMap::new();
-    params.insert("k".to_string(), serde_json::Value::Number(serde_json::Number::from(limit)));
-    params.insert("min_score".to_string(), serde_json::Value::Number(
-        serde_json::Number::from_f64(min_score).unwrap_or(serde_json::Number::from(0))
-    ));
+    params.insert(
+        "k".to_string(),
+        serde_json::Value::Number(serde_json::Number::from(limit)),
+    );
+    params.insert(
+        "min_score".to_string(),
+        serde_json::Value::Number(
+            serde_json::Number::from_f64(min_score).unwrap_or(serde_json::Number::from(0)),
+        ),
+    );
 
     query.push_str(" YIELD node, score");
 
@@ -460,7 +473,10 @@ pub fn build_node_vector_query(
     if let Some(groups) = group_ids {
         if !groups.is_empty() {
             query.push_str(" WHERE node.group_id IN $group_ids");
-            params.insert("group_ids".to_string(), serde_json::to_value(groups).unwrap());
+            params.insert(
+                "group_ids".to_string(),
+                serde_json::to_value(groups).unwrap(),
+            );
         }
     }
 
@@ -498,12 +514,14 @@ pub fn build_node_fulltext_query(
     let sanitized_query = lucene_sanitize(query_text);
     let search_query = fulltext_query(&sanitized_query, group_ids);
 
-    let mut cypher = String::from(
-        "CALL db.index.fulltext.queryNodes('entity_fulltext_index', $query_text)"
-    );
+    let mut cypher =
+        String::from("CALL db.index.fulltext.queryNodes('entity_fulltext_index', $query_text)");
 
     let mut params = std::collections::HashMap::new();
-    params.insert("query_text".to_string(), serde_json::Value::String(search_query));
+    params.insert(
+        "query_text".to_string(),
+        serde_json::Value::String(search_query),
+    );
 
     cypher.push_str(" YIELD node, score");
 

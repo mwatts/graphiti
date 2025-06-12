@@ -21,8 +21,8 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::{
-    errors::GraphitiError,
     database::{GraphDatabase, QueryParameter},
+    errors::GraphitiError,
 };
 
 /// Enumeration of different types of episodes that can be processed.
@@ -117,7 +117,10 @@ impl BaseNode {
     }
 
     /// Delete node by group_id
-    pub async fn delete_by_group_id(database: &dyn GraphDatabase, group_id: &str) -> Result<(), GraphitiError> {
+    pub async fn delete_by_group_id(
+        database: &dyn GraphDatabase,
+        group_id: &str,
+    ) -> Result<(), GraphitiError> {
         database.delete_by_group_id(group_id).await?;
         Ok(())
     }
@@ -194,10 +197,22 @@ impl Node for EpisodicNode {
 
         // Convert node attributes to database parameters
         let mut properties = HashMap::new();
-        properties.insert("uuid".to_string(), QueryParameter::String(self.base.uuid.clone()));
-        properties.insert("name".to_string(), QueryParameter::String(self.base.name.clone()));
-        properties.insert("group_id".to_string(), QueryParameter::String(self.base.group_id.clone()));
-        properties.insert("created_at".to_string(), QueryParameter::String(self.base.created_at.to_rfc3339()));
+        properties.insert(
+            "uuid".to_string(),
+            QueryParameter::String(self.base.uuid.clone()),
+        );
+        properties.insert(
+            "name".to_string(),
+            QueryParameter::String(self.base.name.clone()),
+        );
+        properties.insert(
+            "group_id".to_string(),
+            QueryParameter::String(self.base.group_id.clone()),
+        );
+        properties.insert(
+            "created_at".to_string(),
+            QueryParameter::String(self.base.created_at.to_rfc3339()),
+        );
 
         // Convert EpisodeType to string
         let source_str = match self.source {
@@ -205,37 +220,80 @@ impl Node for EpisodicNode {
             EpisodeType::Json => "json",
             EpisodeType::Text => "text",
         };
-        properties.insert("source".to_string(), QueryParameter::String(source_str.to_string()));
-        properties.insert("source_description".to_string(), QueryParameter::String(self.source_description.clone()));
-        properties.insert("content".to_string(), QueryParameter::String(self.content.clone()));
-        properties.insert("valid_at".to_string(), QueryParameter::String(self.valid_at.to_rfc3339()));
+        properties.insert(
+            "source".to_string(),
+            QueryParameter::String(source_str.to_string()),
+        );
+        properties.insert(
+            "source_description".to_string(),
+            QueryParameter::String(self.source_description.clone()),
+        );
+        properties.insert(
+            "content".to_string(),
+            QueryParameter::String(self.content.clone()),
+        );
+        properties.insert(
+            "valid_at".to_string(),
+            QueryParameter::String(self.valid_at.to_rfc3339()),
+        );
 
         // Convert entity_edges to string representation
         let entity_edges_json = serde_json::to_string(&self.entity_edges).unwrap_or_default();
-        properties.insert("entity_edges".to_string(), QueryParameter::String(entity_edges_json));
+        properties.insert(
+            "entity_edges".to_string(),
+            QueryParameter::String(entity_edges_json),
+        );
 
         // Check if node exists, then create or update
-        if let Some(_existing) = database.get_node(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))? {
-            database.update_node(&self.base.uuid, properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        if let Some(_existing) = database
+            .get_node(&self.base.uuid)
+            .await
+            .map_err(|e| GraphitiError::DatabaseLayer(e))?
+        {
+            database
+                .update_node(&self.base.uuid, properties)
+                .await
+                .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         } else {
-            database.create_node(self.base.labels.clone(), properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+            database
+                .create_node(self.base.labels.clone(), properties)
+                .await
+                .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         }
 
         Ok(())
     }
 
     async fn delete(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
-        database.delete_node(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        database
+            .delete_node(&self.base.uuid)
+            .await
+            .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         Ok(())
     }
 
     fn attributes(&self) -> HashMap<String, serde_json::Value> {
         let mut attrs = HashMap::new();
-        attrs.insert("source".to_string(), serde_json::to_value(&self.source).unwrap());
-        attrs.insert("source_description".to_string(), serde_json::Value::String(self.source_description.clone()));
-        attrs.insert("content".to_string(), serde_json::Value::String(self.content.clone()));
-        attrs.insert("valid_at".to_string(), serde_json::Value::String(self.valid_at.to_rfc3339()));
-        attrs.insert("entity_edges".to_string(), serde_json::to_value(&self.entity_edges).unwrap());
+        attrs.insert(
+            "source".to_string(),
+            serde_json::to_value(&self.source).unwrap(),
+        );
+        attrs.insert(
+            "source_description".to_string(),
+            serde_json::Value::String(self.source_description.clone()),
+        );
+        attrs.insert(
+            "content".to_string(),
+            serde_json::Value::String(self.content.clone()),
+        );
+        attrs.insert(
+            "valid_at".to_string(),
+            serde_json::Value::String(self.valid_at.to_rfc3339()),
+        );
+        attrs.insert(
+            "entity_edges".to_string(),
+            serde_json::to_value(&self.entity_edges).unwrap(),
+        );
         attrs
     }
 }
@@ -291,38 +349,75 @@ impl Node for EntityNode {
 
         // Convert node attributes to database parameters
         let mut properties = HashMap::new();
-        properties.insert("uuid".to_string(), QueryParameter::String(self.base.uuid.clone()));
-        properties.insert("name".to_string(), QueryParameter::String(self.base.name.clone()));
-        properties.insert("group_id".to_string(), QueryParameter::String(self.base.group_id.clone()));
-        properties.insert("created_at".to_string(), QueryParameter::String(self.base.created_at.to_rfc3339()));
-        properties.insert("summary".to_string(), QueryParameter::String(self.summary.clone()));
+        properties.insert(
+            "uuid".to_string(),
+            QueryParameter::String(self.base.uuid.clone()),
+        );
+        properties.insert(
+            "name".to_string(),
+            QueryParameter::String(self.base.name.clone()),
+        );
+        properties.insert(
+            "group_id".to_string(),
+            QueryParameter::String(self.base.group_id.clone()),
+        );
+        properties.insert(
+            "created_at".to_string(),
+            QueryParameter::String(self.base.created_at.to_rfc3339()),
+        );
+        properties.insert(
+            "summary".to_string(),
+            QueryParameter::String(self.summary.clone()),
+        );
 
         // Handle optional summary_embedding
         if let Some(ref embedding) = self.summary_embedding {
             let embedding_json = serde_json::to_string(embedding).unwrap_or_default();
-            properties.insert("summary_embedding".to_string(), QueryParameter::String(embedding_json));
+            properties.insert(
+                "summary_embedding".to_string(),
+                QueryParameter::String(embedding_json),
+            );
         }
 
         // Check if node exists, then create or update
-        if let Some(_existing) = database.get_node(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))? {
-            database.update_node(&self.base.uuid, properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        if let Some(_existing) = database
+            .get_node(&self.base.uuid)
+            .await
+            .map_err(|e| GraphitiError::DatabaseLayer(e))?
+        {
+            database
+                .update_node(&self.base.uuid, properties)
+                .await
+                .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         } else {
-            database.create_node(self.base.labels.clone(), properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+            database
+                .create_node(self.base.labels.clone(), properties)
+                .await
+                .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         }
 
         Ok(())
     }
 
     async fn delete(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
-        database.delete_node(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        database
+            .delete_node(&self.base.uuid)
+            .await
+            .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         Ok(())
     }
 
     fn attributes(&self) -> HashMap<String, serde_json::Value> {
         let mut attrs = HashMap::new();
-        attrs.insert("summary".to_string(), serde_json::Value::String(self.summary.clone()));
+        attrs.insert(
+            "summary".to_string(),
+            serde_json::Value::String(self.summary.clone()),
+        );
         if let Some(ref embedding) = self.summary_embedding {
-            attrs.insert("summary_embedding".to_string(), serde_json::to_value(embedding).unwrap());
+            attrs.insert(
+                "summary_embedding".to_string(),
+                serde_json::to_value(embedding).unwrap(),
+            );
         }
         attrs
     }
@@ -379,38 +474,75 @@ impl Node for CommunityNode {
 
         // Convert node attributes to database parameters
         let mut properties = HashMap::new();
-        properties.insert("uuid".to_string(), QueryParameter::String(self.base.uuid.clone()));
-        properties.insert("name".to_string(), QueryParameter::String(self.base.name.clone()));
-        properties.insert("group_id".to_string(), QueryParameter::String(self.base.group_id.clone()));
-        properties.insert("created_at".to_string(), QueryParameter::String(self.base.created_at.to_rfc3339()));
-        properties.insert("summary".to_string(), QueryParameter::String(self.summary.clone()));
+        properties.insert(
+            "uuid".to_string(),
+            QueryParameter::String(self.base.uuid.clone()),
+        );
+        properties.insert(
+            "name".to_string(),
+            QueryParameter::String(self.base.name.clone()),
+        );
+        properties.insert(
+            "group_id".to_string(),
+            QueryParameter::String(self.base.group_id.clone()),
+        );
+        properties.insert(
+            "created_at".to_string(),
+            QueryParameter::String(self.base.created_at.to_rfc3339()),
+        );
+        properties.insert(
+            "summary".to_string(),
+            QueryParameter::String(self.summary.clone()),
+        );
 
         // Handle optional summary_embedding
         if let Some(ref embedding) = self.summary_embedding {
             let embedding_json = serde_json::to_string(embedding).unwrap_or_default();
-            properties.insert("summary_embedding".to_string(), QueryParameter::String(embedding_json));
+            properties.insert(
+                "summary_embedding".to_string(),
+                QueryParameter::String(embedding_json),
+            );
         }
 
         // Check if node exists, then create or update
-        if let Some(_existing) = database.get_node(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))? {
-            database.update_node(&self.base.uuid, properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        if let Some(_existing) = database
+            .get_node(&self.base.uuid)
+            .await
+            .map_err(|e| GraphitiError::DatabaseLayer(e))?
+        {
+            database
+                .update_node(&self.base.uuid, properties)
+                .await
+                .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         } else {
-            database.create_node(self.base.labels.clone(), properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+            database
+                .create_node(self.base.labels.clone(), properties)
+                .await
+                .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         }
 
         Ok(())
     }
 
     async fn delete(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
-        database.delete_node(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        database
+            .delete_node(&self.base.uuid)
+            .await
+            .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         Ok(())
     }
 
     fn attributes(&self) -> HashMap<String, serde_json::Value> {
         let mut attrs = HashMap::new();
-        attrs.insert("summary".to_string(), serde_json::Value::String(self.summary.clone()));
+        attrs.insert(
+            "summary".to_string(),
+            serde_json::Value::String(self.summary.clone()),
+        );
         if let Some(ref embedding) = self.summary_embedding {
-            attrs.insert("summary_embedding".to_string(), serde_json::to_value(embedding).unwrap());
+            attrs.insert(
+                "summary_embedding".to_string(),
+                serde_json::to_value(embedding).unwrap(),
+            );
         }
         attrs
     }
@@ -422,7 +554,10 @@ mod tests {
 
     #[test]
     fn test_episode_type_from_str() {
-        assert_eq!(EpisodeType::from_str("message").unwrap(), EpisodeType::Message);
+        assert_eq!(
+            EpisodeType::from_str("message").unwrap(),
+            EpisodeType::Message
+        );
         assert_eq!(EpisodeType::from_str("json").unwrap(), EpisodeType::Json);
         assert_eq!(EpisodeType::from_str("text").unwrap(), EpisodeType::Text);
         assert!(EpisodeType::from_str("invalid").is_err());

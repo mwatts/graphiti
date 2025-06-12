@@ -16,9 +16,9 @@ limitations under the License.
 
 //! Edge extraction prompts
 
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use crate::prompts::models::{Message, PromptFunction};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// An extracted edge/relationship
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,23 +45,28 @@ pub struct MissingFacts {
 
 /// Extract relationships/edges between entities
 pub fn edge(context: &HashMap<String, serde_json::Value>) -> Vec<Message> {
-    let previous_episodes = context.get("previous_episodes")
+    let previous_episodes = context
+        .get("previous_episodes")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
-    let episode_content = context.get("episode_content")
+    let episode_content = context
+        .get("episode_content")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let nodes = context.get("nodes")
+    let nodes = context
+        .get("nodes")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
-    let reference_time = context.get("reference_time")
+    let reference_time = context
+        .get("reference_time")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let edge_types = context.get("edge_types")
+    let edge_types = context
+        .get("edge_types")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
@@ -69,7 +74,8 @@ pub fn edge(context: &HashMap<String, serde_json::Value>) -> Vec<Message> {
         1. Extracted fact triples should also be extracted with relevant date information.\
         2. Treat the CURRENT TIME as the time the CURRENT MESSAGE was sent. All temporal information should be extracted relative to this time.";
 
-    let user_prompt = format!(r#"
+    let user_prompt = format!(
+        r#"
 <PREVIOUS_MESSAGES>
 {previous_episodes}
 </PREVIOUS_MESSAGES>
@@ -139,31 +145,33 @@ Only extract facts that:
 If the message is "Alice started working at Google last month and Bob graduated from MIT in 2019":
 - Extract: Alice WORKS_AT Google (valid_at: calculated from "last month")
 - Extract: Bob GRADUATED_FROM MIT (valid_at: 2019-01-01T00:00:00.000000Z)
-"#);
+"#
+    );
 
-    vec![
-        Message::system(sys_prompt),
-        Message::user(user_prompt),
-    ]
+    vec![Message::system(sys_prompt), Message::user(user_prompt)]
 }
 
 /// Reflexion prompt to identify missed facts
 pub fn reflexion(context: &HashMap<String, serde_json::Value>) -> Vec<Message> {
     let sys_prompt = "You are an AI assistant that determines which facts have not been extracted from the given context";
 
-    let previous_episodes = context.get("previous_episodes")
+    let previous_episodes = context
+        .get("previous_episodes")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
-    let episode_content = context.get("episode_content")
+    let episode_content = context
+        .get("episode_content")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let extracted_edges = context.get("extracted_edges")
+    let extracted_edges = context
+        .get("extracted_edges")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
-    let user_prompt = format!(r#"
+    let user_prompt = format!(
+        r#"
 <PREVIOUS MESSAGES>
 {previous_episodes}
 </PREVIOUS MESSAGES>
@@ -177,29 +185,31 @@ pub fn reflexion(context: &HashMap<String, serde_json::Value>) -> Vec<Message> {
 
 Given the above previous messages, current message, and list of extracted edges; determine if any facts haven't been
 extracted.
-"#);
+"#
+    );
 
-    vec![
-        Message::system(sys_prompt),
-        Message::user(user_prompt),
-    ]
+    vec![Message::system(sys_prompt), Message::user(user_prompt)]
 }
 
 /// Extract attributes for edges
 pub fn extract_attributes(context: &HashMap<String, serde_json::Value>) -> Vec<Message> {
-    let previous_episodes = context.get("previous_episodes")
+    let previous_episodes = context
+        .get("previous_episodes")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
-    let episode_content = context.get("episode_content")
+    let episode_content = context
+        .get("episode_content")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "{}".to_string());
 
-    let edge = context.get("edge")
+    let edge = context
+        .get("edge")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "{}".to_string());
 
-    let user_content = format!(r#"
+    let user_content = format!(
+        r#"
 
         <MESSAGES>
         {previous_episodes}
@@ -217,10 +227,13 @@ pub fn extract_attributes(context: &HashMap<String, serde_json::Value>) -> Vec<M
         <EDGE>
         {edge}
         </EDGE>
-        "#);
+        "#
+    );
 
     vec![
-        Message::system("You are a helpful assistant that extracts edge properties from the provided text."),
+        Message::system(
+            "You are a helpful assistant that extracts edge properties from the provided text.",
+        ),
         Message::user(user_content),
     ]
 }

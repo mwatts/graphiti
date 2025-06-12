@@ -16,11 +16,11 @@ limitations under the License.
 
 //! Persistent disk cache implementation using sled
 
-use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use sled::Db;
+use std::sync::Arc;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::RwLock;
 
 use crate::cache::{Cache, CacheConfig, CacheStats};
@@ -62,13 +62,15 @@ impl CacheEntry {
     }
 
     fn to_bytes(&self) -> GraphitiResult<Vec<u8>> {
-        bincode::serialize(self)
-            .map_err(|e| GraphitiError::CacheError(format!("Failed to serialize cache entry: {}", e)))
+        bincode::serialize(self).map_err(|e| {
+            GraphitiError::CacheError(format!("Failed to serialize cache entry: {}", e))
+        })
     }
 
     fn from_bytes(bytes: &[u8]) -> GraphitiResult<Self> {
-        bincode::deserialize(bytes)
-            .map_err(|e| GraphitiError::CacheError(format!("Failed to deserialize cache entry: {}", e)))
+        bincode::deserialize(bytes).map_err(|e| {
+            GraphitiError::CacheError(format!("Failed to deserialize cache entry: {}", e))
+        })
     }
 }
 
@@ -82,13 +84,15 @@ pub struct DiskCache {
 impl DiskCache {
     /// Create a new disk cache
     pub fn new(config: CacheConfig) -> GraphitiResult<Self> {
-        let cache_dir = config.cache_dir
+        let cache_dir = config
+            .cache_dir
             .as_ref()
             .unwrap_or(&"./cache".to_string())
             .clone();
 
-        let db = sled::open(&cache_dir)
-            .map_err(|e| GraphitiError::CacheError(format!("Failed to open cache database: {}", e)))?;
+        let db = sled::open(&cache_dir).map_err(|e| {
+            GraphitiError::CacheError(format!("Failed to open cache database: {}", e))
+        })?;
 
         let cache = Self {
             db,
@@ -134,8 +138,9 @@ impl DiskCache {
         let mut keys_to_remove = Vec::new();
 
         for item in db.iter() {
-            let (key, value) = item
-                .map_err(|e| GraphitiError::CacheError(format!("Database iteration error: {}", e)))?;
+            let (key, value) = item.map_err(|e| {
+                GraphitiError::CacheError(format!("Database iteration error: {}", e))
+            })?;
 
             if let Ok(entry) = CacheEntry::from_bytes(&value) {
                 if entry.is_expired() {
@@ -145,8 +150,9 @@ impl DiskCache {
         }
 
         for key in keys_to_remove {
-            db.remove(&key)
-                .map_err(|e| GraphitiError::CacheError(format!("Failed to remove expired key: {}", e)))?;
+            db.remove(&key).map_err(|e| {
+                GraphitiError::CacheError(format!("Failed to remove expired key: {}", e))
+            })?;
         }
 
         db.flush()
@@ -170,8 +176,12 @@ impl DiskCache {
         let mut size_bytes = 0;
 
         for item in self.db.iter() {
-            let (_, value) = item
-                .map_err(|e| GraphitiError::Io(std::io::Error::new(std::io::ErrorKind::Other, format!("Database iteration error: {}", e))))?;
+            let (_, value) = item.map_err(|e| {
+                GraphitiError::Io(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("Database iteration error: {}", e),
+                ))
+            })?;
 
             if let Ok(entry) = CacheEntry::from_bytes(&value) {
                 if !entry.is_expired() {
@@ -192,7 +202,9 @@ impl DiskCache {
 #[async_trait]
 impl Cache for DiskCache {
     async fn get(&self, key: &str) -> GraphitiResult<Option<Vec<u8>>> {
-        let value = self.db.get(key.as_bytes())
+        let value = self
+            .db
+            .get(key.as_bytes())
             .map_err(|e| GraphitiError::CacheError(format!("Database get error: {}", e)))?;
 
         if let Some(value) = value {
@@ -200,8 +212,9 @@ impl Cache for DiskCache {
 
             if entry.is_expired() {
                 // Remove expired entry
-                self.db.remove(key.as_bytes())
-                    .map_err(|e| GraphitiError::CacheError(format!("Failed to remove expired key: {}", e)))?;
+                self.db.remove(key.as_bytes()).map_err(|e| {
+                    GraphitiError::CacheError(format!("Failed to remove expired key: {}", e))
+                })?;
                 self.update_stats_miss().await;
                 Ok(None)
             } else {
@@ -222,30 +235,36 @@ impl Cache for DiskCache {
         let entry = CacheEntry::new(value, Some(ttl));
         let serialized = entry.to_bytes()?;
 
-        self.db.insert(key.as_bytes(), serialized)
+        self.db
+            .insert(key.as_bytes(), serialized)
             .map_err(|e| GraphitiError::CacheError(format!("Database insert error: {}", e)))?;
 
-        self.db.flush()
+        self.db
+            .flush()
             .map_err(|e| GraphitiError::CacheError(format!("Database flush error: {}", e)))?;
 
         Ok(())
     }
 
     async fn remove(&self, key: &str) -> GraphitiResult<()> {
-        self.db.remove(key.as_bytes())
+        self.db
+            .remove(key.as_bytes())
             .map_err(|e| GraphitiError::CacheError(format!("Database remove error: {}", e)))?;
 
-        self.db.flush()
+        self.db
+            .flush()
             .map_err(|e| GraphitiError::CacheError(format!("Database flush error: {}", e)))?;
 
         Ok(())
     }
 
     async fn clear(&self) -> GraphitiResult<()> {
-        self.db.clear()
+        self.db
+            .clear()
             .map_err(|e| GraphitiError::CacheError(format!("Database clear error: {}", e)))?;
 
-        self.db.flush()
+        self.db
+            .flush()
             .map_err(|e| GraphitiError::CacheError(format!("Database flush error: {}", e)))?;
 
         let mut stats = self.stats.write().await;
@@ -256,13 +275,17 @@ impl Cache for DiskCache {
     }
 
     async fn exists(&self, key: &str) -> GraphitiResult<bool> {
-        let exists = self.db.contains_key(key.as_bytes())
-            .map_err(|e| GraphitiError::CacheError(format!("Database contains_key error: {}", e)))?;
+        let exists = self.db.contains_key(key.as_bytes()).map_err(|e| {
+            GraphitiError::CacheError(format!("Database contains_key error: {}", e))
+        })?;
 
         if exists {
             // Check if expired
-            if let Some(value) = self.db.get(key.as_bytes())
-                .map_err(|e| GraphitiError::CacheError(format!("Database get error: {}", e)))? {
+            if let Some(value) = self
+                .db
+                .get(key.as_bytes())
+                .map_err(|e| GraphitiError::CacheError(format!("Database get error: {}", e)))?
+            {
                 let entry = CacheEntry::from_bytes(&value)?;
                 Ok(!entry.is_expired())
             } else {
@@ -322,7 +345,10 @@ mod tests {
         let value = b"ttl_value".to_vec();
         let short_ttl = Duration::from_millis(50);
 
-        cache.set_with_ttl(key, value.clone(), short_ttl).await.unwrap();
+        cache
+            .set_with_ttl(key, value.clone(), short_ttl)
+            .await
+            .unwrap();
 
         // Should exist initially
         assert_eq!(cache.get(key).await.unwrap(), Some(value));

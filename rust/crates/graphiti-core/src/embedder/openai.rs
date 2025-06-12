@@ -18,8 +18,8 @@ use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-use crate::errors::{GraphitiError, GraphitiResult};
 use super::client::{EmbedderClient, EmbedderConfig};
+use crate::errors::{GraphitiError, GraphitiResult};
 
 const DEFAULT_EMBEDDING_MODEL: &str = "text-embedding-3-small";
 const DEFAULT_BASE_URL: &str = "https://api.openai.com/v1";
@@ -68,12 +68,16 @@ pub struct OpenAiEmbedder {
 
 impl OpenAiEmbedder {
     pub fn new(config: OpenAiEmbedderConfig) -> GraphitiResult<Self> {
-        let api_key = config.api_key.clone()
+        let api_key = config
+            .api_key
+            .clone()
             .ok_or_else(|| GraphitiError::Config {
                 message: "OpenAI API key is required".to_string(),
             })?;
 
-        let base_url = config.base_url.clone()
+        let base_url = config
+            .base_url
+            .clone()
             .unwrap_or_else(|| DEFAULT_BASE_URL.to_string());
 
         let client = Client::builder()
@@ -99,7 +103,8 @@ impl OpenAiEmbedder {
 
         let url = format!("{}/embeddings", self.base_url);
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("Content-Type", "application/json")
@@ -116,10 +121,11 @@ impl OpenAiEmbedder {
             });
         }
 
-        let embedding_response: EmbeddingResponse = response.json().await
-            .map_err(GraphitiError::Http)?;
+        let embedding_response: EmbeddingResponse =
+            response.json().await.map_err(GraphitiError::Http)?;
 
-        let embeddings = embedding_response.data
+        let embeddings = embedding_response
+            .data
             .into_iter()
             .map(|data| {
                 let max_dim = self.config.base.embedding_dim.min(data.embedding.len());
@@ -134,14 +140,19 @@ impl OpenAiEmbedder {
 #[async_trait]
 impl EmbedderClient for OpenAiEmbedder {
     async fn create(&self, input_data: &str) -> GraphitiResult<Vec<f32>> {
-        let embeddings = self.create_embeddings_request(vec![input_data.to_string()]).await?;
-        embeddings.into_iter().next()
+        let embeddings = self
+            .create_embeddings_request(vec![input_data.to_string()])
+            .await?;
+        embeddings
+            .into_iter()
+            .next()
             .ok_or_else(|| GraphitiError::Config {
                 message: "No embeddings returned from OpenAI".to_string(),
             })
     }
 
     async fn create_batch(&self, input_data_list: &[String]) -> GraphitiResult<Vec<Vec<f32>>> {
-        self.create_embeddings_request(input_data_list.to_vec()).await
+        self.create_embeddings_request(input_data_list.to_vec())
+            .await
     }
 }

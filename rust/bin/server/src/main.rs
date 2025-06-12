@@ -1,12 +1,6 @@
 use std::sync::Arc;
 
-use axum::{
-    extract::Extension,
-    http::StatusCode,
-    response::Json,
-    routing::get,
-    Router,
-};
+use axum::{extract::Extension, http::StatusCode, response::Json, routing::get, Router};
 use serde_json::{json, Value};
 use tower::ServiceBuilder;
 use tower_http::{

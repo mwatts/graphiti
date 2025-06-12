@@ -16,22 +16,26 @@ limitations under the License.
 
 //! Node summarization prompts
 
-use std::collections::HashMap;
 use crate::prompts::models::{Message, PromptFunction};
+use std::collections::HashMap;
 
 /// Summarize node information
 pub fn summarize(context: &HashMap<String, serde_json::Value>) -> Vec<Message> {
-    let sys_prompt = "You are an AI assistant that creates concise summaries of entity information.";
+    let sys_prompt =
+        "You are an AI assistant that creates concise summaries of entity information.";
 
-    let nodes = context.get("nodes")
+    let nodes = context
+        .get("nodes")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
-    let context_messages = context.get("context_messages")
+    let context_messages = context
+        .get("context_messages")
         .and_then(|v| serde_json::to_string_pretty(v).ok())
         .unwrap_or_else(|| "[]".to_string());
 
-    let user_prompt = format!(r#"
+    let user_prompt = format!(
+        r#"
 <NODES>
 {nodes}
 </NODES>
@@ -43,12 +47,10 @@ pub fn summarize(context: &HashMap<String, serde_json::Value>) -> Vec<Message> {
 Given the above nodes and context messages, create concise summaries for each node
 that capture the most important information about the entity. Summaries should be
 no longer than 250 words.
-"#);
+"#
+    );
 
-    vec![
-        Message::system(sys_prompt),
-        Message::user(user_prompt),
-    ]
+    vec![Message::system(sys_prompt), Message::user(user_prompt)]
 }
 
 /// Available prompt versions for node summarization

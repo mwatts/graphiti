@@ -107,7 +107,9 @@ impl CrossEncoderClient for OpenAIRerankerClient {
             params.insert("top_logprobs".to_string(), json!(2));
 
             let task = async move {
-                client.chat_completion(&messages, Some(Value::Object(params.into()))).await
+                client
+                    .chat_completion(&messages, Some(Value::Object(params.into())))
+                    .await
             };
 
             tasks.push(task);
@@ -122,11 +124,13 @@ impl CrossEncoderClient for OpenAIRerankerClient {
             let passage = &passages[i];
 
             // Extract logprobs from response
-            let score = extract_score_from_response(response)
-                .unwrap_or_else(|| {
-                    warn!("Failed to extract score for passage {}, using default 0.0", i);
-                    0.0
-                });
+            let score = extract_score_from_response(response).unwrap_or_else(|| {
+                warn!(
+                    "Failed to extract score for passage {}, using default 0.0",
+                    i
+                );
+                0.0
+            });
 
             results.push((passage.clone(), score));
         }
@@ -159,9 +163,10 @@ fn extract_score_from_response(response: &Value) -> Option<f64> {
 
     // If the token indicates relevance, use the probability directly
     // Otherwise, use 1 - probability
-    let score = if token.to_lowercase().contains("true") ||
-                  token.to_lowercase().contains("yes") ||
-                  token.to_lowercase().contains("relevant") {
+    let score = if token.to_lowercase().contains("true")
+        || token.to_lowercase().contains("yes")
+        || token.to_lowercase().contains("relevant")
+    {
         norm_logprob
     } else {
         1.0 - norm_logprob

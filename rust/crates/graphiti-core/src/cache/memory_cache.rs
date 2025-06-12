@@ -16,11 +16,11 @@ limitations under the License.
 
 //! In-memory cache implementation using moka
 
-use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use async_trait::async_trait;
 use moka::future::Cache as MokaCache;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::RwLock;
 
 use crate::cache::{Cache, CacheConfig, CacheStats};
@@ -38,7 +38,8 @@ impl CacheEntry {
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
-                .as_millis() as u64 + ttl.as_millis() as u64
+                .as_millis() as u64
+                + ttl.as_millis() as u64
         });
 
         Self { data, expires_at }
@@ -208,7 +209,10 @@ mod tests {
         let value = b"ttl_value".to_vec();
         let short_ttl = Duration::from_millis(50);
 
-        cache.set_with_ttl(key, value.clone(), short_ttl).await.unwrap();
+        cache
+            .set_with_ttl(key, value.clone(), short_ttl)
+            .await
+            .unwrap();
 
         // Should exist initially
         assert_eq!(cache.get(key).await.unwrap(), Some(value));

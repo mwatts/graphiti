@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+pub mod cached;
 pub mod client;
 pub mod config;
 pub mod models;
 pub mod openai_client;
-pub mod cached;
 
+pub use cached::CachedLlmClient;
 pub use client::{BaseLlmClient, LlmClient};
 pub use config::{LlmConfig, ModelSize, DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE};
 pub use models::Message;
-pub use cached::CachedLlmClient;

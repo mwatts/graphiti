@@ -51,36 +51,36 @@ pub use nodes::Node;
 // Re-export concrete types
 pub use cross_encoder::OpenAIRerankerClient;
 pub use edges::{BaseEdge, CommunityEdge, EntityEdge, EpisodicEdge};
-pub use embedder::{OpenAiEmbedder, CachedEmbedderClient};
+pub use embedder::{CachedEmbedderClient, OpenAiEmbedder};
 pub use llm_client::{
     config::LlmConfig,
     models::{Message, TokenUsage},
     openai_client::OpenAiClient,
     CachedLlmClient,
 };
-pub use nodes::{BaseNode, CommunityNode, EntityNode, EpisodicNode, EpisodeType};
+pub use nodes::{BaseNode, CommunityNode, EntityNode, EpisodeType, EpisodicNode};
 pub use search::{GraphitiSearch, SearchConfig, SearchFilters, SearchResults};
 
 // Re-export cache types
-pub use cache::{Cache, CacheConfig, CacheStats, generate_cache_key};
+pub use cache::{generate_cache_key, Cache, CacheConfig, CacheStats};
 
 // Re-export bulk operations
 pub use bulk::BulkOperations;
 
 // Re-export prompts
-pub use prompts::{PromptLibrary, Message as PromptMessage, get_prompt_library};
+pub use prompts::{get_prompt_library, Message as PromptMessage, PromptLibrary};
 
 // Re-export helpers
-pub use helpers::{semaphore_gather, lucene_sanitize, normalize_l2};
+pub use helpers::{lucene_sanitize, normalize_l2, semaphore_gather};
 
 // Re-export utils
-pub use utils::{bulk_utils, datetime_utils, ValidationReport, GraphStats};
+pub use utils::{bulk_utils, datetime_utils, GraphStats, ValidationReport};
 
 // Re-export main Graphiti orchestrator
-pub use graphiti::{Graphiti, GraphitiConfig, AddEpisodeResults};
+pub use graphiti::{AddEpisodeResults, Graphiti, GraphitiConfig};
 
 // Re-export database types
-pub use database::{GraphDatabase, DatabaseConfig, DatabaseType, create_database};
+pub use database::{create_database, DatabaseConfig, DatabaseType, GraphDatabase};
 
 #[cfg(test)]
 mod tests {

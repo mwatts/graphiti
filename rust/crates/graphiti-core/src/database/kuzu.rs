@@ -16,14 +16,14 @@ limitations under the License.
 
 //! KuzuDB database implementation
 
+use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use async_trait::async_trait;
 use uuid::Uuid;
 
-use super::traits::{GraphDatabase, Transaction, QueryResult, QueryParameter, NodeData, EdgeData};
 use super::config::DatabaseConfig;
-use super::types::{DatabaseResult, DatabaseError};
+use super::traits::{EdgeData, GraphDatabase, NodeData, QueryParameter, QueryResult, Transaction};
+use super::types::{DatabaseError, DatabaseResult};
 
 /// KuzuDB database implementation
 #[derive(Debug)]
@@ -82,7 +82,11 @@ impl KuzuDatabase {
     }
 
     /// Execute a KuzuDB query
-    async fn execute_kuzu_query(&self, query: &str, _parameters: HashMap<String, QueryParameter>) -> DatabaseResult<QueryResult> {
+    async fn execute_kuzu_query(
+        &self,
+        query: &str,
+        _parameters: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<QueryResult> {
         // This is a mock implementation
         // In a real implementation, you would:
         // 1. Use the actual KuzuDB API to execute the query
@@ -112,7 +116,11 @@ impl KuzuDatabase {
 
 #[async_trait]
 impl GraphDatabase for KuzuDatabase {
-    async fn execute(&self, query: &str, parameters: HashMap<String, QueryParameter>) -> DatabaseResult<QueryResult> {
+    async fn execute(
+        &self,
+        query: &str,
+        parameters: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<QueryResult> {
         self.execute_kuzu_query(query, parameters).await
     }
 
@@ -140,7 +148,11 @@ impl GraphDatabase for KuzuDatabase {
         Ok(std::path::Path::new(&self.database_path).exists() || self.database_path.is_empty())
     }
 
-    async fn create_node(&self, labels: Vec<String>, properties: HashMap<String, QueryParameter>) -> DatabaseResult<String> {
+    async fn create_node(
+        &self,
+        labels: Vec<String>,
+        properties: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<String> {
         let uuid = Uuid::new_v4().to_string();
         let node = NodeData {
             id: uuid.clone(),
@@ -157,14 +169,21 @@ impl GraphDatabase for KuzuDatabase {
         Ok(nodes.get(id).cloned())
     }
 
-    async fn update_node(&self, id: &str, properties: HashMap<String, QueryParameter>) -> DatabaseResult<()> {
+    async fn update_node(
+        &self,
+        id: &str,
+        properties: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<()> {
         let mut nodes = self.nodes.lock().unwrap();
         if let Some(node) = nodes.get_mut(id) {
             for (key, value) in properties {
                 node.properties.insert(key, value);
             }
         } else {
-            return Err(DatabaseError::NotFound(format!("Node with id {} not found", id)));
+            return Err(DatabaseError::NotFound(format!(
+                "Node with id {} not found",
+                id
+            )));
         }
         Ok(())
     }
@@ -172,7 +191,10 @@ impl GraphDatabase for KuzuDatabase {
     async fn delete_node(&self, id: &str) -> DatabaseResult<()> {
         let mut nodes = self.nodes.lock().unwrap();
         if nodes.remove(id).is_none() {
-            return Err(DatabaseError::NotFound(format!("Node with id {} not found", id)));
+            return Err(DatabaseError::NotFound(format!(
+                "Node with id {} not found",
+                id
+            )));
         }
 
         // Also remove any edges connected to this node
@@ -182,7 +204,11 @@ impl GraphDatabase for KuzuDatabase {
         Ok(())
     }
 
-    async fn find_nodes(&self, label: Option<&str>, properties: HashMap<String, QueryParameter>) -> DatabaseResult<Vec<NodeData>> {
+    async fn find_nodes(
+        &self,
+        label: Option<&str>,
+        properties: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<Vec<NodeData>> {
         let nodes = self.nodes.lock().unwrap();
         let mut results = Vec::new();
 
@@ -216,14 +242,26 @@ impl GraphDatabase for KuzuDatabase {
         Ok(results)
     }
 
-    async fn create_edge(&self, source_id: &str, target_id: &str, edge_type: &str, properties: HashMap<String, QueryParameter>) -> DatabaseResult<String> {
+    async fn create_edge(
+        &self,
+        source_id: &str,
+        target_id: &str,
+        edge_type: &str,
+        properties: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<String> {
         // Check that source and target nodes exist
         let nodes = self.nodes.lock().unwrap();
         if !nodes.contains_key(source_id) {
-            return Err(DatabaseError::NotFound(format!("Source node {} not found", source_id)));
+            return Err(DatabaseError::NotFound(format!(
+                "Source node {} not found",
+                source_id
+            )));
         }
         if !nodes.contains_key(target_id) {
-            return Err(DatabaseError::NotFound(format!("Target node {} not found", target_id)));
+            return Err(DatabaseError::NotFound(format!(
+                "Target node {} not found",
+                target_id
+            )));
         }
         drop(nodes);
 
@@ -245,14 +283,21 @@ impl GraphDatabase for KuzuDatabase {
         Ok(edges.get(id).cloned())
     }
 
-    async fn update_edge(&self, id: &str, properties: HashMap<String, QueryParameter>) -> DatabaseResult<()> {
+    async fn update_edge(
+        &self,
+        id: &str,
+        properties: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<()> {
         let mut edges = self.edges.lock().unwrap();
         if let Some(edge) = edges.get_mut(id) {
             for (key, value) in properties {
                 edge.properties.insert(key, value);
             }
         } else {
-            return Err(DatabaseError::NotFound(format!("Edge with id {} not found", id)));
+            return Err(DatabaseError::NotFound(format!(
+                "Edge with id {} not found",
+                id
+            )));
         }
         Ok(())
     }
@@ -260,12 +305,20 @@ impl GraphDatabase for KuzuDatabase {
     async fn delete_edge(&self, id: &str) -> DatabaseResult<()> {
         let mut edges = self.edges.lock().unwrap();
         if edges.remove(id).is_none() {
-            return Err(DatabaseError::NotFound(format!("Edge with id {} not found", id)));
+            return Err(DatabaseError::NotFound(format!(
+                "Edge with id {} not found",
+                id
+            )));
         }
         Ok(())
     }
 
-    async fn find_edges(&self, source_id: Option<&str>, target_id: Option<&str>, edge_type: Option<&str>) -> DatabaseResult<Vec<EdgeData>> {
+    async fn find_edges(
+        &self,
+        source_id: Option<&str>,
+        target_id: Option<&str>,
+        edge_type: Option<&str>,
+    ) -> DatabaseResult<Vec<EdgeData>> {
         let edges = self.edges.lock().unwrap();
         let mut results = Vec::new();
 
@@ -311,7 +364,9 @@ impl GraphDatabase for KuzuDatabase {
             let to_remove: Vec<String> = nodes
                 .iter()
                 .filter(|(_, node)| {
-                    if let Some(QueryParameter::String(node_group_id)) = node.properties.get("group_id") {
+                    if let Some(QueryParameter::String(node_group_id)) =
+                        node.properties.get("group_id")
+                    {
                         node_group_id == group_id
                     } else {
                         false
@@ -329,7 +384,8 @@ impl GraphDatabase for KuzuDatabase {
         {
             let mut edges = self.edges.lock().unwrap();
             edges.retain(|_, edge| {
-                if let Some(QueryParameter::String(edge_group_id)) = edge.properties.get("group_id") {
+                if let Some(QueryParameter::String(edge_group_id)) = edge.properties.get("group_id")
+                {
                     edge_group_id != group_id
                 } else {
                     true
@@ -346,7 +402,12 @@ impl GraphDatabase for KuzuDatabase {
         Ok(())
     }
 
-    async fn create_constraint(&self, _label: &str, _property: &str, _constraint_type: &str) -> DatabaseResult<()> {
+    async fn create_constraint(
+        &self,
+        _label: &str,
+        _property: &str,
+        _constraint_type: &str,
+    ) -> DatabaseResult<()> {
         // KuzuDB constraint creation would go here
         // For now, this is a no-op since we're using in-memory storage
         Ok(())
@@ -363,7 +424,11 @@ impl GraphDatabase for KuzuDatabase {
         Ok(())
     }
 
-    async fn fulltext_search(&self, query: &str, labels: Vec<String>) -> DatabaseResult<Vec<NodeData>> {
+    async fn fulltext_search(
+        &self,
+        query: &str,
+        labels: Vec<String>,
+    ) -> DatabaseResult<Vec<NodeData>> {
         // KuzuDB doesn't have built-in fulltext search like Neo4j
         // You would need to implement this using external tools or manual text matching
         let nodes = self.nodes.lock().unwrap();
@@ -399,7 +464,12 @@ impl GraphDatabase for KuzuDatabase {
         Ok(results)
     }
 
-    async fn vector_search(&self, _embedding: Vec<f64>, _label: &str, _top_k: usize) -> DatabaseResult<Vec<(NodeData, f64)>> {
+    async fn vector_search(
+        &self,
+        _embedding: Vec<f64>,
+        _label: &str,
+        _top_k: usize,
+    ) -> DatabaseResult<Vec<(NodeData, f64)>> {
         // KuzuDB doesn't have built-in vector search
         // You would need to implement this using external vector databases or manual similarity calculations
         Ok(Vec::new())
@@ -408,7 +478,11 @@ impl GraphDatabase for KuzuDatabase {
 
 #[async_trait]
 impl Transaction for KuzuTransaction {
-    async fn execute(&mut self, query: &str, parameters: HashMap<String, QueryParameter>) -> DatabaseResult<QueryResult> {
+    async fn execute(
+        &mut self,
+        query: &str,
+        parameters: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<QueryResult> {
         // In a real implementation, this would execute within a KuzuDB transaction context
         self.database.execute_kuzu_query(query, parameters).await
     }

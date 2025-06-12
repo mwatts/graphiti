@@ -20,10 +20,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::{
-    errors::GraphitiError,
-    database::GraphDatabase,
-};
+use crate::{database::GraphDatabase, errors::GraphitiError};
 
 /// Base trait for all edge types in the graph
 #[async_trait]
@@ -64,11 +61,7 @@ pub struct BaseEdge {
 }
 
 impl BaseEdge {
-    pub fn new(
-        group_id: String,
-        source_node_uuid: String,
-        target_node_uuid: String,
-    ) -> Self {
+    pub fn new(group_id: String, source_node_uuid: String, target_node_uuid: String) -> Self {
         Self {
             uuid: Uuid::new_v4().to_string(),
             group_id,
@@ -109,11 +102,7 @@ pub struct EpisodicEdge {
 }
 
 impl EpisodicEdge {
-    pub fn new(
-        group_id: String,
-        episode_uuid: String,
-        entity_uuid: String,
-    ) -> Self {
+    pub fn new(group_id: String, episode_uuid: String, entity_uuid: String) -> Self {
         Self {
             base: BaseEdge::new(group_id, episode_uuid, entity_uuid),
         }
@@ -147,27 +136,49 @@ impl Edge for EpisodicEdge {
 
         // Convert edge attributes to database parameters
         let mut properties = HashMap::new();
-        properties.insert("uuid".to_string(), QueryParameter::String(self.base.uuid.clone()));
-        properties.insert("group_id".to_string(), QueryParameter::String(self.base.group_id.clone()));
-        properties.insert("created_at".to_string(), QueryParameter::String(self.base.created_at.to_rfc3339()));
+        properties.insert(
+            "uuid".to_string(),
+            QueryParameter::String(self.base.uuid.clone()),
+        );
+        properties.insert(
+            "group_id".to_string(),
+            QueryParameter::String(self.base.group_id.clone()),
+        );
+        properties.insert(
+            "created_at".to_string(),
+            QueryParameter::String(self.base.created_at.to_rfc3339()),
+        );
 
         // Check if edge exists, then create or update
-        if let Some(_existing) = database.get_edge(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))? {
-            database.update_edge(&self.base.uuid, properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        if let Some(_existing) = database
+            .get_edge(&self.base.uuid)
+            .await
+            .map_err(|e| GraphitiError::DatabaseLayer(e))?
+        {
+            database
+                .update_edge(&self.base.uuid, properties)
+                .await
+                .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         } else {
-            database.create_edge(
-                &self.base.source_node_uuid,
-                &self.base.target_node_uuid,
-                "EPISODIC_EDGE", // Edge type for episodic edges
-                properties
-            ).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+            database
+                .create_edge(
+                    &self.base.source_node_uuid,
+                    &self.base.target_node_uuid,
+                    "EPISODIC_EDGE", // Edge type for episodic edges
+                    properties,
+                )
+                .await
+                .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         }
 
         Ok(())
     }
 
     async fn delete(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
-        database.delete_edge(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        database
+            .delete_edge(&self.base.uuid)
+            .await
+            .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         Ok(())
     }
 
@@ -264,58 +275,116 @@ impl Edge for EntityEdge {
 
         // Convert edge attributes to database parameters
         let mut properties = HashMap::new();
-        properties.insert("uuid".to_string(), QueryParameter::String(self.base.uuid.clone()));
-        properties.insert("group_id".to_string(), QueryParameter::String(self.base.group_id.clone()));
-        properties.insert("created_at".to_string(), QueryParameter::String(self.base.created_at.to_rfc3339()));
-        properties.insert("name".to_string(), QueryParameter::String(self.name.clone()));
-        properties.insert("fact".to_string(), QueryParameter::String(self.fact.clone()));
-        properties.insert("valid_at".to_string(), QueryParameter::String(self.valid_at.to_rfc3339()));
+        properties.insert(
+            "uuid".to_string(),
+            QueryParameter::String(self.base.uuid.clone()),
+        );
+        properties.insert(
+            "group_id".to_string(),
+            QueryParameter::String(self.base.group_id.clone()),
+        );
+        properties.insert(
+            "created_at".to_string(),
+            QueryParameter::String(self.base.created_at.to_rfc3339()),
+        );
+        properties.insert(
+            "name".to_string(),
+            QueryParameter::String(self.name.clone()),
+        );
+        properties.insert(
+            "fact".to_string(),
+            QueryParameter::String(self.fact.clone()),
+        );
+        properties.insert(
+            "valid_at".to_string(),
+            QueryParameter::String(self.valid_at.to_rfc3339()),
+        );
 
         // Convert episodes to JSON string
         let episodes_json = serde_json::to_string(&self.episodes).unwrap_or_default();
-        properties.insert("episodes".to_string(), QueryParameter::String(episodes_json));
+        properties.insert(
+            "episodes".to_string(),
+            QueryParameter::String(episodes_json),
+        );
 
         // Handle optional timestamps
         if let Some(expired_at) = self.expired_at {
-            properties.insert("expired_at".to_string(), QueryParameter::String(expired_at.to_rfc3339()));
+            properties.insert(
+                "expired_at".to_string(),
+                QueryParameter::String(expired_at.to_rfc3339()),
+            );
         }
         if let Some(invalid_at) = self.invalid_at {
-            properties.insert("invalid_at".to_string(), QueryParameter::String(invalid_at.to_rfc3339()));
+            properties.insert(
+                "invalid_at".to_string(),
+                QueryParameter::String(invalid_at.to_rfc3339()),
+            );
         }
 
         // Check if edge exists, then create or update
-        if let Some(_existing) = database.get_edge(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))? {
-            database.update_edge(&self.base.uuid, properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        if let Some(_existing) = database
+            .get_edge(&self.base.uuid)
+            .await
+            .map_err(|e| GraphitiError::DatabaseLayer(e))?
+        {
+            database
+                .update_edge(&self.base.uuid, properties)
+                .await
+                .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         } else {
-            database.create_edge(
-                &self.base.source_node_uuid,
-                &self.base.target_node_uuid,
-                "ENTITY_EDGE", // Edge type for entity edges
-                properties
-            ).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+            database
+                .create_edge(
+                    &self.base.source_node_uuid,
+                    &self.base.target_node_uuid,
+                    "ENTITY_EDGE", // Edge type for entity edges
+                    properties,
+                )
+                .await
+                .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         }
 
         Ok(())
     }
 
     async fn delete(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
-        database.delete_edge(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        database
+            .delete_edge(&self.base.uuid)
+            .await
+            .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         Ok(())
     }
 
     fn attributes(&self) -> HashMap<String, serde_json::Value> {
         let mut attrs = HashMap::new();
-        attrs.insert("name".to_string(), serde_json::Value::String(self.name.clone()));
-        attrs.insert("fact".to_string(), serde_json::Value::String(self.fact.clone()));
-        attrs.insert("episodes".to_string(), serde_json::to_value(&self.episodes).unwrap());
-        attrs.insert("valid_at".to_string(), serde_json::Value::String(self.valid_at.to_rfc3339()));
+        attrs.insert(
+            "name".to_string(),
+            serde_json::Value::String(self.name.clone()),
+        );
+        attrs.insert(
+            "fact".to_string(),
+            serde_json::Value::String(self.fact.clone()),
+        );
+        attrs.insert(
+            "episodes".to_string(),
+            serde_json::to_value(&self.episodes).unwrap(),
+        );
+        attrs.insert(
+            "valid_at".to_string(),
+            serde_json::Value::String(self.valid_at.to_rfc3339()),
+        );
 
         if let Some(expired_at) = self.expired_at {
-            attrs.insert("expired_at".to_string(), serde_json::Value::String(expired_at.to_rfc3339()));
+            attrs.insert(
+                "expired_at".to_string(),
+                serde_json::Value::String(expired_at.to_rfc3339()),
+            );
         }
 
         if let Some(invalid_at) = self.invalid_at {
-            attrs.insert("invalid_at".to_string(), serde_json::Value::String(invalid_at.to_rfc3339()));
+            attrs.insert(
+                "invalid_at".to_string(),
+                serde_json::Value::String(invalid_at.to_rfc3339()),
+            );
         }
 
         attrs
@@ -330,11 +399,7 @@ pub struct CommunityEdge {
 }
 
 impl CommunityEdge {
-    pub fn new(
-        group_id: String,
-        entity_uuid: String,
-        community_uuid: String,
-    ) -> Self {
+    pub fn new(group_id: String, entity_uuid: String, community_uuid: String) -> Self {
         Self {
             base: BaseEdge::new(group_id, entity_uuid, community_uuid),
         }
@@ -368,27 +433,49 @@ impl Edge for CommunityEdge {
 
         // Convert edge attributes to database parameters
         let mut properties = HashMap::new();
-        properties.insert("uuid".to_string(), QueryParameter::String(self.base.uuid.clone()));
-        properties.insert("group_id".to_string(), QueryParameter::String(self.base.group_id.clone()));
-        properties.insert("created_at".to_string(), QueryParameter::String(self.base.created_at.to_rfc3339()));
+        properties.insert(
+            "uuid".to_string(),
+            QueryParameter::String(self.base.uuid.clone()),
+        );
+        properties.insert(
+            "group_id".to_string(),
+            QueryParameter::String(self.base.group_id.clone()),
+        );
+        properties.insert(
+            "created_at".to_string(),
+            QueryParameter::String(self.base.created_at.to_rfc3339()),
+        );
 
         // Check if edge exists, then create or update
-        if let Some(_existing) = database.get_edge(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))? {
-            database.update_edge(&self.base.uuid, properties).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        if let Some(_existing) = database
+            .get_edge(&self.base.uuid)
+            .await
+            .map_err(|e| GraphitiError::DatabaseLayer(e))?
+        {
+            database
+                .update_edge(&self.base.uuid, properties)
+                .await
+                .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         } else {
-            database.create_edge(
-                &self.base.source_node_uuid,
-                &self.base.target_node_uuid,
-                "COMMUNITY_EDGE", // Edge type for community edges
-                properties
-            ).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+            database
+                .create_edge(
+                    &self.base.source_node_uuid,
+                    &self.base.target_node_uuid,
+                    "COMMUNITY_EDGE", // Edge type for community edges
+                    properties,
+                )
+                .await
+                .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         }
 
         Ok(())
     }
 
     async fn delete(&self, database: &dyn GraphDatabase) -> Result<(), GraphitiError> {
-        database.delete_edge(&self.base.uuid).await.map_err(|e| GraphitiError::DatabaseLayer(e))?;
+        database
+            .delete_edge(&self.base.uuid)
+            .await
+            .map_err(|e| GraphitiError::DatabaseLayer(e))?;
         Ok(())
     }
 

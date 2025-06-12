@@ -36,19 +36,26 @@ async fn search(
     Extension(service): Extension<Arc<GraphitiService>>,
     Json(query): Json<SearchQuery>,
 ) -> Result<Json<SearchResults>, StatusCode> {
-    match service.search(query.query, Some(query.group_ids), Some(query.max_facts)).await {
+    match service
+        .search(query.query, Some(query.group_ids), Some(query.max_facts))
+        .await
+    {
         Ok(results) => {
             // Convert search results to facts
-            let facts: Vec<FactResult> = results.edges.iter().map(|edge| {
-                FactResult {
-                    fact: edge.item.fact.clone(),
-                    uuid: edge.item.base.uuid.to_string(),
-                    valid_at: Some(edge.item.valid_at.to_rfc3339()),
-                    invalid_at: edge.item.invalid_at.map(|dt| dt.to_rfc3339()),
-                    source_description: "".to_string(), // TODO: Add source description to edges
-                    episodes: Vec::new(), // TODO: Add episode references
-                }
-            }).collect();
+            let facts: Vec<FactResult> = results
+                .edges
+                .iter()
+                .map(|edge| {
+                    FactResult {
+                        fact: edge.item.fact.clone(),
+                        uuid: edge.item.base.uuid.to_string(),
+                        valid_at: Some(edge.item.valid_at.to_rfc3339()),
+                        invalid_at: edge.item.invalid_at.map(|dt| dt.to_rfc3339()),
+                        source_description: "".to_string(), // TODO: Add source description to edges
+                        episodes: Vec::new(),               // TODO: Add episode references
+                    }
+                })
+                .collect();
 
             Ok(Json(SearchResults { facts }))
         }
@@ -71,7 +78,7 @@ async fn get_entity_edge(
                 valid_at: Some(edge.valid_at.to_rfc3339()),
                 invalid_at: edge.invalid_at.map(|dt| dt.to_rfc3339()),
                 source_description: "".to_string(), // TODO: Add source description
-                episodes: Vec::new(), // TODO: Add episode references
+                episodes: Vec::new(),               // TODO: Add episode references
             };
             Ok(Json(fact))
         }
@@ -88,7 +95,10 @@ async fn get_episodes(
 ) -> Result<Json<Vec<serde_json::Value>>, StatusCode> {
     let reference_time = Utc::now();
 
-    match service.retrieve_episodes(vec![group_id], params.last_n, reference_time).await {
+    match service
+        .retrieve_episodes(vec![group_id], params.last_n, reference_time)
+        .await
+    {
         Ok(episodes) => {
             // Convert episodes to JSON
             let episodes_json: Vec<serde_json::Value> = episodes
@@ -107,24 +117,41 @@ async fn get_memory(
     Json(request): Json<GetMemoryRequest>,
 ) -> Result<Json<GetMemoryResponse>, StatusCode> {
     // Compose query from messages
-    let combined_query = request.messages
+    let combined_query = request
+        .messages
         .iter()
-        .map(|msg| format!("{}({}): {}", msg.role_type.as_deref().unwrap_or(""), msg.role.as_deref().unwrap_or(""), msg.content))
+        .map(|msg| {
+            format!(
+                "{}({}): {}",
+                msg.role_type.as_deref().unwrap_or(""),
+                msg.role.as_deref().unwrap_or(""),
+                msg.content
+            )
+        })
         .collect::<Vec<_>>()
         .join("\n");
 
-    match service.search(combined_query, Some(vec![request.group_id]), Some(request.max_facts)).await {
+    match service
+        .search(
+            combined_query,
+            Some(vec![request.group_id]),
+            Some(request.max_facts),
+        )
+        .await
+    {
         Ok(results) => {
-            let facts: Vec<FactResult> = results.edges.iter().map(|edge| {
-                FactResult {
+            let facts: Vec<FactResult> = results
+                .edges
+                .iter()
+                .map(|edge| FactResult {
                     fact: edge.item.fact.clone(),
                     uuid: edge.item.base.uuid.to_string(),
                     valid_at: Some(edge.item.valid_at.to_rfc3339()),
                     invalid_at: edge.item.invalid_at.map(|dt| dt.to_rfc3339()),
                     source_description: "".to_string(),
                     episodes: Vec::new(),
-                }
-            }).collect();
+                })
+                .collect();
 
             Ok(Json(GetMemoryResponse { facts }))
         }

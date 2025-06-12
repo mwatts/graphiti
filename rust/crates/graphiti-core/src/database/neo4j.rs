@@ -16,15 +16,15 @@ limitations under the License.
 
 //! Neo4j database implementation
 
+use async_trait::async_trait;
+use neo4rs::{BoltList, BoltMap, BoltType, ConfigBuilder, Graph, Node, Relation, Txn};
 use std::collections::HashMap;
 use std::sync::Arc;
-use async_trait::async_trait;
-use neo4rs::{Graph, ConfigBuilder, BoltType, BoltMap, BoltList, Node, Relation, Txn};
 use uuid::Uuid;
 
-use super::traits::{GraphDatabase, Transaction, QueryResult, QueryParameter, NodeData, EdgeData};
 use super::config::DatabaseConfig;
-use super::types::{DatabaseResult, DatabaseError};
+use super::traits::{EdgeData, GraphDatabase, NodeData, QueryParameter, QueryResult, Transaction};
+use super::types::{DatabaseError, DatabaseResult};
 
 /// Neo4j database implementation
 pub struct Neo4jDatabase {
@@ -47,8 +47,7 @@ impl std::fmt::Debug for Neo4jDatabase {
 impl Neo4jDatabase {
     /// Create a new Neo4j database connection
     pub async fn new(config: DatabaseConfig) -> DatabaseResult<Self> {
-        let mut builder = ConfigBuilder::default()
-            .uri(&config.uri);
+        let mut builder = ConfigBuilder::default().uri(&config.uri);
 
         if let Some(username) = &config.username {
             builder = builder.user(username);
@@ -130,7 +129,11 @@ impl Neo4jDatabase {
     }
 
     /// Execute a query and convert results
-    async fn execute_query(&self, query: &str, parameters: HashMap<String, QueryParameter>) -> DatabaseResult<QueryResult> {
+    async fn execute_query(
+        &self,
+        query: &str,
+        parameters: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<QueryResult> {
         // For now, provide a basic implementation that returns empty results
         // This will be improved in subsequent iterations
         let _ = query;
@@ -145,7 +148,11 @@ impl Neo4jDatabase {
 
 #[async_trait]
 impl GraphDatabase for Neo4jDatabase {
-    async fn execute(&self, query: &str, parameters: HashMap<String, QueryParameter>) -> DatabaseResult<QueryResult> {
+    async fn execute(
+        &self,
+        query: &str,
+        parameters: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<QueryResult> {
         self.execute_query(query, parameters).await
     }
 
@@ -168,10 +175,17 @@ impl GraphDatabase for Neo4jDatabase {
         Ok(!result.rows.is_empty())
     }
 
-    async fn create_node(&self, labels: Vec<String>, properties: HashMap<String, QueryParameter>) -> DatabaseResult<String> {
+    async fn create_node(
+        &self,
+        labels: Vec<String>,
+        properties: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<String> {
         let uuid = Uuid::new_v4().to_string();
         let labels_str = labels.join(":");
-        let query = format!("CREATE (n:{}) SET n.uuid = $uuid SET n += $props RETURN n.uuid as id", labels_str);
+        let query = format!(
+            "CREATE (n:{}) SET n.uuid = $uuid SET n += $props RETURN n.uuid as id",
+            labels_str
+        );
 
         let mut params = HashMap::new();
         params.insert("uuid".to_string(), QueryParameter::String(uuid.clone()));
@@ -201,7 +215,11 @@ impl GraphDatabase for Neo4jDatabase {
         Ok(None)
     }
 
-    async fn update_node(&self, id: &str, properties: HashMap<String, QueryParameter>) -> DatabaseResult<()> {
+    async fn update_node(
+        &self,
+        id: &str,
+        properties: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<()> {
         let query = "MATCH (n {uuid: $id}) SET n += $props";
         let mut params = HashMap::new();
         params.insert("id".to_string(), QueryParameter::String(id.to_string()));
@@ -220,14 +238,21 @@ impl GraphDatabase for Neo4jDatabase {
         Ok(())
     }
 
-    async fn find_nodes(&self, label: Option<&str>, properties: HashMap<String, QueryParameter>) -> DatabaseResult<Vec<NodeData>> {
+    async fn find_nodes(
+        &self,
+        label: Option<&str>,
+        properties: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<Vec<NodeData>> {
         let label_part = if let Some(l) = label {
             format!(":{}", l)
         } else {
             String::new()
         };
 
-        let query = format!("MATCH (n{}) WHERE all(key in keys($props) WHERE n[key] = $props[key]) RETURN n", label_part);
+        let query = format!(
+            "MATCH (n{}) WHERE all(key in keys($props) WHERE n[key] = $props[key]) RETURN n",
+            label_part
+        );
         let mut params = HashMap::new();
         params.insert("props".to_string(), QueryParameter::Map(properties));
 
@@ -236,7 +261,13 @@ impl GraphDatabase for Neo4jDatabase {
         Ok(Vec::new())
     }
 
-    async fn create_edge(&self, source_id: &str, target_id: &str, edge_type: &str, properties: HashMap<String, QueryParameter>) -> DatabaseResult<String> {
+    async fn create_edge(
+        &self,
+        source_id: &str,
+        target_id: &str,
+        edge_type: &str,
+        properties: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<String> {
         let uuid = Uuid::new_v4().to_string();
         let query = format!(
             "MATCH (a {{uuid: $source_id}}), (b {{uuid: $target_id}}) CREATE (a)-[r:{} {{uuid: $uuid}}]->(b) SET r += $props RETURN r.uuid as id",
@@ -244,8 +275,14 @@ impl GraphDatabase for Neo4jDatabase {
         );
 
         let mut params = HashMap::new();
-        params.insert("source_id".to_string(), QueryParameter::String(source_id.to_string()));
-        params.insert("target_id".to_string(), QueryParameter::String(target_id.to_string()));
+        params.insert(
+            "source_id".to_string(),
+            QueryParameter::String(source_id.to_string()),
+        );
+        params.insert(
+            "target_id".to_string(),
+            QueryParameter::String(target_id.to_string()),
+        );
         params.insert("uuid".to_string(), QueryParameter::String(uuid.clone()));
         params.insert("props".to_string(), QueryParameter::Map(properties));
 
@@ -263,7 +300,11 @@ impl GraphDatabase for Neo4jDatabase {
         Ok(None)
     }
 
-    async fn update_edge(&self, id: &str, properties: HashMap<String, QueryParameter>) -> DatabaseResult<()> {
+    async fn update_edge(
+        &self,
+        id: &str,
+        properties: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<()> {
         let query = "MATCH ()-[r {uuid: $id}]->() SET r += $props";
         let mut params = HashMap::new();
         params.insert("id".to_string(), QueryParameter::String(id.to_string()));
@@ -282,7 +323,12 @@ impl GraphDatabase for Neo4jDatabase {
         Ok(())
     }
 
-    async fn find_edges(&self, source_id: Option<&str>, target_id: Option<&str>, edge_type: Option<&str>) -> DatabaseResult<Vec<EdgeData>> {
+    async fn find_edges(
+        &self,
+        source_id: Option<&str>,
+        target_id: Option<&str>,
+        edge_type: Option<&str>,
+    ) -> DatabaseResult<Vec<EdgeData>> {
         // Simplified implementation
         Ok(Vec::new())
     }
@@ -296,22 +342,41 @@ impl GraphDatabase for Neo4jDatabase {
     async fn delete_by_group_id(&self, group_id: &str) -> DatabaseResult<()> {
         let query = "MATCH (n {group_id: $group_id}) DETACH DELETE n";
         let mut params = HashMap::new();
-        params.insert("group_id".to_string(), QueryParameter::String(group_id.to_string()));
+        params.insert(
+            "group_id".to_string(),
+            QueryParameter::String(group_id.to_string()),
+        );
 
         self.execute(query, params).await?;
         Ok(())
     }
 
     async fn create_index(&self, label: &str, property: &str) -> DatabaseResult<()> {
-        let query = format!("CREATE INDEX IF NOT EXISTS FOR (n:{}) ON (n.{})", label, property);
+        let query = format!(
+            "CREATE INDEX IF NOT EXISTS FOR (n:{}) ON (n.{})",
+            label, property
+        );
         self.execute(&query, HashMap::new()).await?;
         Ok(())
     }
 
-    async fn create_constraint(&self, label: &str, property: &str, constraint_type: &str) -> DatabaseResult<()> {
+    async fn create_constraint(
+        &self,
+        label: &str,
+        property: &str,
+        constraint_type: &str,
+    ) -> DatabaseResult<()> {
         let query = match constraint_type {
-            "UNIQUE" => format!("CREATE CONSTRAINT IF NOT EXISTS FOR (n:{}) REQUIRE n.{} IS UNIQUE", label, property),
-            _ => return Err(DatabaseError::UnsupportedOperation(format!("Constraint type: {}", constraint_type))),
+            "UNIQUE" => format!(
+                "CREATE CONSTRAINT IF NOT EXISTS FOR (n:{}) REQUIRE n.{} IS UNIQUE",
+                label, property
+            ),
+            _ => {
+                return Err(DatabaseError::UnsupportedOperation(format!(
+                    "Constraint type: {}",
+                    constraint_type
+                )))
+            }
         };
         self.execute(&query, HashMap::new()).await?;
         Ok(())
@@ -321,7 +386,8 @@ impl GraphDatabase for Neo4jDatabase {
         // Create standard Graphiti indices and constraints
         self.create_constraint("Entity", "uuid", "UNIQUE").await?;
         self.create_constraint("Episodic", "uuid", "UNIQUE").await?;
-        self.create_constraint("Community", "uuid", "UNIQUE").await?;
+        self.create_constraint("Community", "uuid", "UNIQUE")
+            .await?;
 
         self.create_index("Entity", "name").await?;
         self.create_index("Entity", "group_id").await?;
@@ -333,12 +399,21 @@ impl GraphDatabase for Neo4jDatabase {
         Ok(())
     }
 
-    async fn fulltext_search(&self, query: &str, labels: Vec<String>) -> DatabaseResult<Vec<NodeData>> {
+    async fn fulltext_search(
+        &self,
+        query: &str,
+        labels: Vec<String>,
+    ) -> DatabaseResult<Vec<NodeData>> {
         // Neo4j fulltext search implementation would go here
         Ok(Vec::new())
     }
 
-    async fn vector_search(&self, embedding: Vec<f64>, label: &str, top_k: usize) -> DatabaseResult<Vec<(NodeData, f64)>> {
+    async fn vector_search(
+        &self,
+        embedding: Vec<f64>,
+        label: &str,
+        top_k: usize,
+    ) -> DatabaseResult<Vec<(NodeData, f64)>> {
         // Neo4j vector search implementation would go here
         Ok(Vec::new())
     }
@@ -346,7 +421,11 @@ impl GraphDatabase for Neo4jDatabase {
 
 #[async_trait]
 impl Transaction for Neo4jTransaction {
-    async fn execute(&mut self, _query: &str, _parameters: HashMap<String, QueryParameter>) -> DatabaseResult<QueryResult> {
+    async fn execute(
+        &mut self,
+        _query: &str,
+        _parameters: HashMap<String, QueryParameter>,
+    ) -> DatabaseResult<QueryResult> {
         // Simplified implementation for now
         Ok(QueryResult {
             columns: Vec::new(),

@@ -19,20 +19,20 @@ limitations under the License.
 //! This module contains all the prompts used for entity extraction, edge extraction,
 //! deduplication, and other LLM-driven operations in Graphiti.
 
-pub mod models;
-pub mod extract_nodes;
-pub mod extract_edges;
-pub mod dedupe_nodes;
 pub mod dedupe_edges;
-pub mod invalidate_edges;
-pub mod extract_edge_dates;
-pub mod summarize_nodes;
+pub mod dedupe_nodes;
 pub mod eval;
+pub mod extract_edge_dates;
+pub mod extract_edges;
+pub mod extract_nodes;
 pub mod helpers;
+pub mod invalidate_edges;
 pub mod lib;
+pub mod models;
+pub mod summarize_nodes;
 
+pub use lib::{get_prompt_library, PromptLibrary};
 pub use models::{Message, PromptFunction};
-pub use lib::{PromptLibrary, get_prompt_library};
 
 /// Unicode escape prevention string
 pub const DO_NOT_ESCAPE_UNICODE: &str = "\nDo not escape unicode characters.\n";

@@ -16,13 +16,8 @@ limitations under the License.
 
 //! Temporal operations for graph maintenance
 
+use crate::{edges::EntityEdge, errors::GraphitiError, llm_client::LlmClient, nodes::EpisodicNode};
 use chrono::{DateTime, Utc};
-use crate::{
-    nodes::EpisodicNode,
-    edges::EntityEdge,
-    llm_client::LlmClient,
-    errors::GraphitiError,
-};
 
 /// Extract temporal dates from edges
 pub async fn extract_edge_dates(
@@ -84,7 +79,7 @@ mod tests {
         let base_edge = BaseEdge::new(
             "group".to_string(),
             "source".to_string(),
-            "target".to_string()
+            "target".to_string(),
         );
 
         let mut edge = EntityEdge {

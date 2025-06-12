@@ -1,16 +1,16 @@
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use graphiti_core::{
-    embedder::openai::{OpenAiEmbedder, OpenAiEmbedderConfig},
-    llm_client::{openai_client::OpenAiClient, config::LlmConfig},
     cross_encoder::openai_reranker_client::OpenAIRerankerClient,
-    nodes::{EpisodeType, EpisodicNode, EntityNode},
     edges::EntityEdge,
+    embedder::openai::{OpenAiEmbedder, OpenAiEmbedderConfig},
+    llm_client::{config::LlmConfig, openai_client::OpenAiClient},
+    nodes::{EntityNode, EpisodeType, EpisodicNode},
     search::{SearchConfig, SearchFilters, SearchResults},
     Graphiti, GraphitiConfig,
 };
 use std::sync::Arc;
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
 
 use crate::config::Settings;
 
@@ -46,23 +46,31 @@ impl GraphitiService {
             max_tokens: 8192,
             small_model: None,
         };
-        let llm_client = Arc::new(OpenAiClient::new(llm_config, false)
-            .map_err(|e| anyhow::anyhow!("Failed to create LLM client: {:?}", e))?);
+        let llm_client = Arc::new(
+            OpenAiClient::new(llm_config, false)
+                .map_err(|e| anyhow::anyhow!("Failed to create LLM client: {:?}", e))?,
+        );
 
         // Create embedder
         let embedder_config = OpenAiEmbedderConfig {
             api_key: Some(settings.openai_api_key.clone()),
-            embedding_model: settings.embedding_model_name.clone()
+            embedding_model: settings
+                .embedding_model_name
+                .clone()
                 .unwrap_or_else(|| "text-embedding-ada-002".to_string()),
             base_url: settings.openai_base_url.clone(),
             ..Default::default()
         };
-        let embedder = Arc::new(OpenAiEmbedder::new(embedder_config)
-            .map_err(|e| anyhow::anyhow!("Failed to create embedder: {:?}", e))?);
+        let embedder = Arc::new(
+            OpenAiEmbedder::new(embedder_config)
+                .map_err(|e| anyhow::anyhow!("Failed to create embedder: {:?}", e))?,
+        );
 
         // Create cross encoder (reranker)
-        let cross_encoder = Arc::new(OpenAIRerankerClient::new(Default::default())
-            .map_err(|e| anyhow::anyhow!("Failed to create cross encoder: {:?}", e))?);
+        let cross_encoder = Arc::new(
+            OpenAIRerankerClient::new(Default::default())
+                .map_err(|e| anyhow::anyhow!("Failed to create cross encoder: {:?}", e))?,
+        );
 
         // Create Graphiti instance
         let graphiti = Graphiti::with_clients(config, llm_client, embedder, cross_encoder)
@@ -82,15 +90,18 @@ impl GraphitiService {
         group_id: String,
         reference_time: Option<DateTime<Utc>>,
     ) -> Result<EpisodicNode> {
-        let result = self.graphiti.add_episode(
-            name,
-            content,
-            source,
-            source_description,
-            group_id,
-            reference_time,
-        ).await
-        .map_err(|e| anyhow::anyhow!("Failed to add episode: {:?}", e))?;
+        let result = self
+            .graphiti
+            .add_episode(
+                name,
+                content,
+                source,
+                source_description,
+                group_id,
+                reference_time,
+            )
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to add episode: {:?}", e))?;
 
         Ok(result.episode)
     }
@@ -113,7 +124,8 @@ impl GraphitiService {
             config.limit = limit;
         }
 
-        self.graphiti.search(&query, Some(config), Some(filters))
+        self.graphiti
+            .search(&query, Some(config), Some(filters))
             .await
             .map_err(|e| anyhow::anyhow!("Failed to search: {:?}", e))
     }
@@ -129,31 +141,41 @@ impl GraphitiService {
         // This is a stub implementation since this method doesn't exist in the Rust version yet
         // In the Python version, this creates an EntityNode and saves it directly
         // For now, we'll return an error indicating this needs to be implemented
-        Err(anyhow::anyhow!("save_entity_node not yet implemented in Rust version"))
+        Err(anyhow::anyhow!(
+            "save_entity_node not yet implemented in Rust version"
+        ))
     }
 
     /// Get an entity edge by UUID (stub)
     pub async fn get_entity_edge(&self, _uuid: Uuid) -> Result<Option<EntityEdge>> {
         // This is a stub implementation since this method doesn't exist in the Rust version yet
-        Err(anyhow::anyhow!("get_entity_edge not yet implemented in Rust version"))
+        Err(anyhow::anyhow!(
+            "get_entity_edge not yet implemented in Rust version"
+        ))
     }
 
     /// Delete an entity edge (stub)
     pub async fn delete_entity_edge(&self, _uuid: Uuid) -> Result<()> {
         // This is a stub implementation since this method doesn't exist in the Rust version yet
-        Err(anyhow::anyhow!("delete_entity_edge not yet implemented in Rust version"))
+        Err(anyhow::anyhow!(
+            "delete_entity_edge not yet implemented in Rust version"
+        ))
     }
 
     /// Delete a group (stub)
     pub async fn delete_group(&self, _group_id: String) -> Result<()> {
         // This is a stub implementation since this method doesn't exist in the Rust version yet
-        Err(anyhow::anyhow!("delete_group not yet implemented in Rust version"))
+        Err(anyhow::anyhow!(
+            "delete_group not yet implemented in Rust version"
+        ))
     }
 
     /// Delete an episode (stub)
     pub async fn delete_episode(&self, _uuid: Uuid) -> Result<()> {
         // This is a stub implementation since this method doesn't exist in the Rust version yet
-        Err(anyhow::anyhow!("delete_episode not yet implemented in Rust version"))
+        Err(anyhow::anyhow!(
+            "delete_episode not yet implemented in Rust version"
+        ))
     }
 
     /// Retrieve episodes (stub)
@@ -164,12 +186,16 @@ impl GraphitiService {
         _reference_time: DateTime<Utc>,
     ) -> Result<Vec<EpisodicNode>> {
         // This is a stub implementation since this method doesn't exist in the Rust version yet
-        Err(anyhow::anyhow!("retrieve_episodes not yet implemented in Rust version"))
+        Err(anyhow::anyhow!(
+            "retrieve_episodes not yet implemented in Rust version"
+        ))
     }
 
     /// Clear all data (stub)
     pub async fn clear_data(&self) -> Result<()> {
         // This is a stub implementation since this method doesn't exist in the Rust version yet
-        Err(anyhow::anyhow!("clear_data not yet implemented in Rust version"))
+        Err(anyhow::anyhow!(
+            "clear_data not yet implemented in Rust version"
+        ))
     }
 }

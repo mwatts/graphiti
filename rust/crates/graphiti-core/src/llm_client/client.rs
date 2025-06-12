@@ -14,17 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::collections::HashMap;
-use std::time::Duration;
 use async_trait::async_trait;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
+use std::time::Duration;
 use tokio_retry::{strategy::ExponentialBackoff, RetryIf};
 use tracing::{debug, warn};
 
-use crate::errors::{LlmError, LlmResult};
 use super::config::{LlmConfig, ModelSize};
 use super::models::Message;
+use crate::errors::{LlmError, LlmResult};
 
 const DEFAULT_CACHE_DIR: &str = "./llm_cache";
 const MULTILINGUAL_EXTRACTION_RESPONSES: &str =
@@ -51,12 +51,15 @@ pub trait LlmClient: Send + Sync {
 
     /// Generate a simple text response
     async fn generate_text(&self, messages: &[Message]) -> LlmResult<String> {
-        let response = self.generate_response(messages, None, None, ModelSize::Medium).await?;
-        response.get("content")
+        let response = self
+            .generate_response(messages, None, None, ModelSize::Medium)
+            .await?;
+        response
+            .get("content")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string())
             .ok_or_else(|| LlmError::EmptyResponse {
-                message: "No content field in response".to_string()
+                message: "No content field in response".to_string(),
             })
     }
 }
@@ -71,10 +74,11 @@ pub struct BaseLlmClient {
 impl BaseLlmClient {
     pub fn new(config: LlmConfig, cache_enabled: bool) -> LlmResult<Self> {
         let cache = if cache_enabled {
-            Some(sled::open(DEFAULT_CACHE_DIR)
-                .map_err(|e| LlmError::InvalidConfig {
-                    message: format!("Failed to open cache: {}", e)
-                })?)
+            Some(
+                sled::open(DEFAULT_CACHE_DIR).map_err(|e| LlmError::InvalidConfig {
+                    message: format!("Failed to open cache: {}", e),
+                })?,
+            )
         } else {
             None
         };
@@ -96,7 +100,8 @@ impl BaseLlmClient {
         }
 
         // Remove control characters except newlines, returns, and tabs
-        cleaned.chars()
+        cleaned
+            .chars()
             .filter(|&c| (c as u32) >= 32 || c == '\n' || c == '\r' || c == '\t')
             .collect()
     }
@@ -104,7 +109,8 @@ impl BaseLlmClient {
     /// Generate cache key for messages
     pub fn get_cache_key(&self, messages: &[Message]) -> String {
         let messages_json = serde_json::to_string(messages).unwrap_or_default();
-        let key_string = format!("{}:{}",
+        let key_string = format!(
+            "{}:{}",
             self.config.model.as_deref().unwrap_or("default"),
             messages_json
         );
@@ -118,7 +124,8 @@ impl BaseLlmClient {
     pub async fn get_cached_response(&self, cache_key: &str) -> Option<HashMap<String, Value>> {
         if let Some(cache) = &self.cache {
             if let Ok(Some(cached_data)) = cache.get(cache_key) {
-                if let Ok(response) = serde_json::from_slice::<HashMap<String, Value>>(&cached_data) {
+                if let Ok(response) = serde_json::from_slice::<HashMap<String, Value>>(&cached_data)
+                {
                     debug!("Cache hit for {}", cache_key);
                     return Some(response);
                 }
@@ -138,7 +145,11 @@ impl BaseLlmClient {
     }
 
     /// Prepare messages for LLM call
-    pub fn prepare_messages(&self, mut messages: Vec<Message>, response_model: Option<&str>) -> Vec<Message> {
+    pub fn prepare_messages(
+        &self,
+        mut messages: Vec<Message>,
+        response_model: Option<&str>,
+    ) -> Vec<Message> {
         // Add response model schema if provided
         if let Some(schema) = response_model {
             if let Some(last_msg) = messages.last_mut() {
@@ -151,7 +162,9 @@ impl BaseLlmClient {
 
         // Add multilingual extraction instructions
         if let Some(first_msg) = messages.first_mut() {
-            first_msg.content.push_str(MULTILINGUAL_EXTRACTION_RESPONSES);
+            first_msg
+                .content
+                .push_str(MULTILINGUAL_EXTRACTION_RESPONSES);
         }
 
         // Clean all message content
@@ -173,10 +186,9 @@ impl BaseLlmClient {
             .take(4);
 
         let retry_condition = |error: &LlmError| {
-            matches!(error,
-                LlmError::RateLimit |
-                LlmError::Http(_) |
-                LlmError::Timeout { .. }
+            matches!(
+                error,
+                LlmError::RateLimit | LlmError::Http(_) | LlmError::Timeout { .. }
             )
         };
 

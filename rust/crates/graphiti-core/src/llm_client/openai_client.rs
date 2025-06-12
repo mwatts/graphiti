@@ -14,17 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::collections::HashMap;
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::collections::HashMap;
 use tracing::{error, warn};
 
-use crate::errors::{LlmError, LlmResult};
 use super::client::{BaseLlmClient, LlmClient};
 use super::config::{LlmConfig, ModelSize};
 use super::models::Message;
+use crate::errors::{LlmError, LlmResult};
 
 const DEFAULT_MODEL: &str = "gpt-4o-mini";
 const DEFAULT_SMALL_MODEL: &str = "gpt-4o-mini";
@@ -83,11 +83,16 @@ pub struct OpenAiClient {
 
 impl OpenAiClient {
     pub fn new(config: LlmConfig, cache_enabled: bool) -> LlmResult<Self> {
-        let api_key = config.api_key.clone().ok_or_else(|| LlmError::Authentication {
-            message: "OpenAI API key is required".to_string(),
-        })?;
+        let api_key = config
+            .api_key
+            .clone()
+            .ok_or_else(|| LlmError::Authentication {
+                message: "OpenAI API key is required".to_string(),
+            })?;
 
-        let base_url = config.base_url.clone()
+        let base_url = config
+            .base_url
+            .clone()
             .unwrap_or_else(|| DEFAULT_BASE_URL.to_string());
 
         let base_client = BaseLlmClient::new(config, cache_enabled)?;
@@ -116,13 +121,22 @@ impl OpenAiClient {
         model_size: ModelSize,
     ) -> LlmResult<HashMap<String, Value>> {
         let model = match model_size {
-            ModelSize::Small => self.base_client.config.small_model.as_deref()
+            ModelSize::Small => self
+                .base_client
+                .config
+                .small_model
+                .as_deref()
                 .unwrap_or(DEFAULT_SMALL_MODEL),
-            ModelSize::Medium => self.base_client.config.model.as_deref()
+            ModelSize::Medium => self
+                .base_client
+                .config
+                .model
+                .as_deref()
                 .unwrap_or(DEFAULT_MODEL),
         };
 
-        let openai_messages: Vec<OpenAiMessage> = messages.iter()
+        let openai_messages: Vec<OpenAiMessage> = messages
+            .iter()
             .map(|m| OpenAiMessage {
                 role: m.role.clone(),
                 content: self.base_client.clean_input(&m.content),
@@ -149,7 +163,8 @@ impl OpenAiClient {
 
         let url = format!("{}/chat/completions", self.base_url);
 
-        let response = self.http_client
+        let response = self
+            .http_client
             .post(&url)
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("Content-Type", "application/json")
@@ -170,8 +185,8 @@ impl OpenAiClient {
             });
         }
 
-        let chat_response: OpenAiChatResponse = response.json().await
-            .map_err(|e| LlmError::NetworkError {
+        let chat_response: OpenAiChatResponse =
+            response.json().await.map_err(|e| LlmError::NetworkError {
                 message: format!("Failed to parse JSON response: {}", e),
             })?;
 
@@ -181,18 +196,25 @@ impl OpenAiClient {
             });
         }
 
-        let choice = chat_response.choices.into_iter().next()
-            .ok_or_else(|| LlmError::EmptyResponse {
-                message: "No choices in response".to_string(),
-            })?;
+        let choice =
+            chat_response
+                .choices
+                .into_iter()
+                .next()
+                .ok_or_else(|| LlmError::EmptyResponse {
+                    message: "No choices in response".to_string(),
+                })?;
 
         if let Some(refusal) = choice.message.refusal {
             return Err(LlmError::Refusal { message: refusal });
         }
 
-        let content = choice.message.content.ok_or_else(|| LlmError::EmptyResponse {
-            message: "No content in response".to_string(),
-        })?;
+        let content = choice
+            .message
+            .content
+            .ok_or_else(|| LlmError::EmptyResponse {
+                message: "No content in response".to_string(),
+            })?;
 
         // Try to parse as JSON first, if that fails return as plain text
         let mut result = HashMap::new();
@@ -228,19 +250,24 @@ impl LlmClient for OpenAiClient {
         }
 
         // Prepare messages with schema and multilingual instructions
-        let prepared_messages = self.base_client.prepare_messages(messages.to_vec(), response_model);
+        let prepared_messages = self
+            .base_client
+            .prepare_messages(messages.to_vec(), response_model);
 
         let mut retry_count = 0;
         let mut last_error = None;
         let mut current_messages = prepared_messages;
 
         while retry_count <= self.max_retries {
-            match self.generate_response_internal(
-                &current_messages,
-                response_model,
-                max_tokens,
-                model_size,
-            ).await {
+            match self
+                .generate_response_internal(
+                    &current_messages,
+                    response_model,
+                    max_tokens,
+                    model_size,
+                )
+                .await
+            {
                 Ok(response) => {
                     // Cache the response if caching is enabled
                     if self.base_client.cache_enabled {
@@ -258,12 +285,15 @@ impl LlmClient for OpenAiClient {
                     let error_details = format!("{:?}", e);
 
                     if retry_count >= self.max_retries {
-                        error!("Max retries ({}) exceeded. Last error: {:?}", self.max_retries, e);
+                        error!(
+                            "Max retries ({}) exceeded. Last error: {:?}",
+                            self.max_retries, e
+                        );
                         return Err(e);
                     }
 
                     last_error = Some(LlmError::EmptyResponse {
-                        message: error_details.clone()
+                        message: error_details.clone(),
                     });
 
                     retry_count += 1;
@@ -278,8 +308,10 @@ impl LlmClient for OpenAiClient {
                     );
 
                     current_messages.push(Message::user(error_context));
-                    warn!("Retrying after application error (attempt {}/{}): {:?}",
-                          retry_count, self.max_retries, e);
+                    warn!(
+                        "Retrying after application error (attempt {}/{}): {:?}",
+                        retry_count, self.max_retries, e
+                    );
                 }
             }
         }
@@ -295,7 +327,9 @@ impl LlmClient for OpenAiClient {
         _json_params: Option<Value>,
     ) -> LlmResult<Value> {
         // Convert to the format expected by generate_response
-        let response = self.generate_response(messages, None, None, ModelSize::Medium).await?;
+        let response = self
+            .generate_response(messages, None, None, ModelSize::Medium)
+            .await?;
         Ok(Value::Object(response.into_iter().collect()))
     }
 }

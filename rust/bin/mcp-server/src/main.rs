@@ -1,18 +1,18 @@
-use std::sync::Arc;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use clap::Parser;
 use graphiti_core::{
-    embedder::openai::{OpenAiEmbedder, OpenAiEmbedderConfig},
-    llm_client::{openai_client::OpenAiClient, config::LlmConfig},
     cross_encoder::openai_reranker_client::OpenAIRerankerClient,
+    embedder::openai::{OpenAiEmbedder, OpenAiEmbedderConfig},
+    llm_client::{config::LlmConfig, openai_client::OpenAiClient},
     Graphiti, GraphitiConfig as CoreGraphitiConfig,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::Mutex;
-use tracing::{error, info, Level, warn};
+use tracing::{error, info, warn, Level};
 use tracing_subscriber;
 
 mod config;
@@ -123,8 +123,10 @@ async fn initialize_graphiti(config: &GraphitiConfig) -> anyhow::Result<Graphiti
         small_model: Some(config.llm.small_model.clone()),
     };
 
-    let llm_client = Arc::new(OpenAiClient::new(llm_config, false)
-        .map_err(|e| anyhow::anyhow!("Failed to create LLM client: {:?}", e))?);
+    let llm_client = Arc::new(
+        OpenAiClient::new(llm_config, false)
+            .map_err(|e| anyhow::anyhow!("Failed to create LLM client: {:?}", e))?,
+    );
 
     // Create embedder
     let embedder_config = OpenAiEmbedderConfig {
@@ -134,12 +136,16 @@ async fn initialize_graphiti(config: &GraphitiConfig) -> anyhow::Result<Graphiti
         ..Default::default()
     };
 
-    let embedder = Arc::new(OpenAiEmbedder::new(embedder_config)
-        .map_err(|e| anyhow::anyhow!("Failed to create embedder: {:?}", e))?);
+    let embedder = Arc::new(
+        OpenAiEmbedder::new(embedder_config)
+            .map_err(|e| anyhow::anyhow!("Failed to create embedder: {:?}", e))?,
+    );
 
     // Create cross encoder
-    let cross_encoder = Arc::new(OpenAIRerankerClient::new(Default::default())
-        .map_err(|e| anyhow::anyhow!("Failed to create cross encoder: {:?}", e))?);
+    let cross_encoder = Arc::new(
+        OpenAIRerankerClient::new(Default::default())
+            .map_err(|e| anyhow::anyhow!("Failed to create cross encoder: {:?}", e))?,
+    );
 
     // Create Graphiti instance
     let graphiti = Graphiti::with_clients(core_config, llm_client, embedder, cross_encoder)
@@ -172,10 +178,7 @@ fn create_success_response(id: Option<Value>, result: Value) -> McpResponse {
     }
 }
 
-async fn handle_request(
-    request: McpRequest,
-    tools: Arc<Mutex<GraphitiTools>>,
-) -> McpResponse {
+async fn handle_request(request: McpRequest, tools: Arc<Mutex<GraphitiTools>>) -> McpResponse {
     match request.method.as_str() {
         "initialize" => {
             let server_info = ServerInfo {
@@ -183,13 +186,16 @@ async fn handle_request(
                 version: "0.1.0".to_string(),
                 instructions: Some(MCP_INSTRUCTIONS.to_string()),
             };
-            create_success_response(request.id, json!({
-                "protocolVersion": "2024-11-05",
-                "capabilities": {
-                    "tools": {}
-                },
-                "serverInfo": server_info
-            }))
+            create_success_response(
+                request.id,
+                json!({
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {
+                        "tools": {}
+                    },
+                    "serverInfo": server_info
+                }),
+            )
         }
         "tools/list" => {
             let tool_list = vec![
@@ -304,31 +310,46 @@ async fn handle_request(
         "tools/call" => {
             if let Some(params) = request.params {
                 if let Ok(tool_call) = serde_json::from_value::<HashMap<String, Value>>(params) {
-                    if let (Some(name), Some(arguments)) = (tool_call.get("name"), tool_call.get("arguments")) {
+                    if let (Some(name), Some(arguments)) =
+                        (tool_call.get("name"), tool_call.get("arguments"))
+                    {
                         let tools_guard = tools.lock().await;
                         let result = match name.as_str().unwrap_or("") {
                             "add_memory" => tools_guard.add_memory(arguments.clone()).await,
-                            "search_memory_nodes" => tools_guard.search_memory_nodes(arguments.clone()).await,
-                            "search_memory_facts" => tools_guard.search_memory_facts(arguments.clone()).await,
+                            "search_memory_nodes" => {
+                                tools_guard.search_memory_nodes(arguments.clone()).await
+                            }
+                            "search_memory_facts" => {
+                                tools_guard.search_memory_facts(arguments.clone()).await
+                            }
                             "clear_graph" => tools_guard.clear_graph().await,
                             _ => json!({"error": format!("Unknown tool: {}", name)}),
                         };
                         drop(tools_guard);
 
-                        return create_success_response(request.id, json!({
-                            "content": [{
-                                "type": "text",
-                                "text": serde_json::to_string_pretty(&result).unwrap_or_else(|_| result.to_string())
-                            }]
-                        }));
+                        return create_success_response(
+                            request.id,
+                            json!({
+                                "content": [{
+                                    "type": "text",
+                                    "text": serde_json::to_string_pretty(&result).unwrap_or_else(|_| result.to_string())
+                                }]
+                            }),
+                        );
                     }
                 }
             }
-            create_error_response(request.id, -32602, "Invalid tool call parameters".to_string())
+            create_error_response(
+                request.id,
+                -32602,
+                "Invalid tool call parameters".to_string(),
+            )
         }
-        _ => {
-            create_error_response(request.id, -32601, format!("Method not found: {}", request.method))
-        }
+        _ => create_error_response(
+            request.id,
+            -32601,
+            format!("Method not found: {}", request.method),
+        ),
     }
 }
 
@@ -360,11 +381,8 @@ async fn run_stdio(tools: Arc<Mutex<GraphitiTools>>) -> anyhow::Result<()> {
                     }
                     Err(e) => {
                         warn!("Failed to parse request: {}", e);
-                        let error_response = create_error_response(
-                            None,
-                            -32700,
-                            "Parse error".to_string(),
-                        );
+                        let error_response =
+                            create_error_response(None, -32700, "Parse error".to_string());
                         let response_json = serde_json::to_string(&error_response)?;
                         stdout.write_all(response_json.as_bytes()).await?;
                         stdout.write_all(b"\n").await?;

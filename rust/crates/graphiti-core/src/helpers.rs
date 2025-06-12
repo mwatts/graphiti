@@ -16,11 +16,11 @@ limitations under the License.
 
 //! Helper utilities for Graphiti
 
-use std::env;
 use chrono::{DateTime, Utc};
-use neo4rs::BoltType;
-use tokio::sync::Semaphore;
 use futures::future::join_all;
+use neo4rs::BoltType;
+use std::env;
+use tokio::sync::Semaphore;
 
 /// Default database name from environment
 pub fn default_database() -> Option<String> {
@@ -123,10 +123,7 @@ pub fn normalize_l2(embedding: &[f32]) -> Vec<f32> {
 }
 
 /// Execute futures with semaphore-based concurrency limiting
-pub async fn semaphore_gather<T, F>(
-    futures: Vec<F>,
-    max_concurrent: Option<usize>,
-) -> Vec<T>
+pub async fn semaphore_gather<T, F>(futures: Vec<F>, max_concurrent: Option<usize>) -> Vec<T>
 where
     F: std::future::Future<Output = T> + Send,
     T: Send,

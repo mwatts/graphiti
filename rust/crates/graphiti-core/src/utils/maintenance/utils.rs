@@ -16,13 +16,9 @@ limitations under the License.
 
 //! Maintenance utility functions
 
+use crate::{edges::EntityEdge, errors::GraphitiError, nodes::EntityNode};
 use std::collections::HashMap;
 use uuid::Uuid;
-use crate::{
-    nodes::EntityNode,
-    edges::EntityEdge,
-    errors::GraphitiError,
-};
 
 /// Validate graph consistency
 pub async fn validate_graph_consistency(
@@ -32,7 +28,8 @@ pub async fn validate_graph_consistency(
     let mut report = ValidationReport::default();
 
     // Check for orphaned edges (edges pointing to non-existent nodes)
-    let node_uuids: std::collections::HashSet<_> = nodes.iter().map(|n| n.base.uuid.clone()).collect();
+    let node_uuids: std::collections::HashSet<_> =
+        nodes.iter().map(|n| n.base.uuid.clone()).collect();
 
     for edge in edges {
         if !node_uuids.contains(&edge.base.source_node_uuid) {
@@ -123,7 +120,10 @@ pub fn cleanup_graph_data(
     // For duplicate node names, keep only the first occurrence
     let mut seen_names = std::collections::HashSet::new();
     nodes.retain(|node| {
-        if validation_report.duplicate_node_names.contains(&node.base.name) {
+        if validation_report
+            .duplicate_node_names
+            .contains(&node.base.name)
+        {
             seen_names.insert(node.base.name.clone())
         } else {
             true
@@ -146,10 +146,7 @@ pub fn merge_similar_nodes(
 }
 
 /// Calculate graph statistics
-pub fn calculate_graph_stats(
-    nodes: &[EntityNode],
-    edges: &[EntityEdge],
-) -> GraphStats {
+pub fn calculate_graph_stats(nodes: &[EntityNode], edges: &[EntityEdge]) -> GraphStats {
     let node_count = nodes.len();
     let edge_count = edges.len();
 

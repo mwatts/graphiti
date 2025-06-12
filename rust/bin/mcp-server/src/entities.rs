@@ -59,13 +59,23 @@ pub fn get_entity_type_names() -> Vec<&'static str> {
 }
 
 /// Get all entity types as a HashMap for Graphiti
-pub fn get_entity_types() -> std::collections::HashMap<String, Box<dyn std::any::Any + Send + Sync>> {
+pub fn get_entity_types() -> std::collections::HashMap<String, Box<dyn std::any::Any + Send + Sync>>
+{
     let mut entity_types = std::collections::HashMap::new();
 
     // Add the entity types that match the Python implementation
-    entity_types.insert("Requirement".to_string(), Box::new(()) as Box<dyn std::any::Any + Send + Sync>);
-    entity_types.insert("Preference".to_string(), Box::new(()) as Box<dyn std::any::Any + Send + Sync>);
-    entity_types.insert("Procedure".to_string(), Box::new(()) as Box<dyn std::any::Any + Send + Sync>);
+    entity_types.insert(
+        "Requirement".to_string(),
+        Box::new(()) as Box<dyn std::any::Any + Send + Sync>,
+    );
+    entity_types.insert(
+        "Preference".to_string(),
+        Box::new(()) as Box<dyn std::any::Any + Send + Sync>,
+    );
+    entity_types.insert(
+        "Procedure".to_string(),
+        Box::new(()) as Box<dyn std::any::Any + Send + Sync>,
+    );
 
     entity_types
 }
